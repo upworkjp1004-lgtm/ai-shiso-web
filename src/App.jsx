@@ -301,11 +301,48 @@ function fetchWithTimeout(url, options, ms) {
 async function generateAnalysis({ answers, traits, typeName, philosopher }) {
   const answerSummary = answers.map((a,i)=>`Q${i+1}: ${a.question} → ${a.answer}`).join("\n");
   const traitSummary  = Object.entries(traits).map(([k,v])=>`${k}:${v}`).join(", ");
-  const systemPrompt = `あなたは思想アーカイブSNS「Noema」の診断AIです。
-禁止：空虚な褒め・自己啓発・ChatGPT的相槌・同じ文章の繰り返し
-文体：実存主義/虚無主義/ロマン主義の哲学的温度感。短く刺さる。スクショされる一文を含む。
-出力（JSONのみ）:{"definition":"40〜60字","contradiction":"40〜60字","solitude":"30〜50字","distance":"30〜50字","quote":"20〜35字"}`;
-  const userContent = `タイプ:${typeName}\n哲学者:${philosopher.name}\nスコア:${traitSummary}\n回答:\n${answerSummary}\n\n各回答の具体的選択に言及してください。毎回異なる視点で。`;
+
+  // ① 文学性を強化したシステムプロンプト
+  // ニーチェ・カミュ・ドストエフスキー・シオラン系の温度感
+  const systemPrompt = `あなたは思想標本を生成する文学的AIです。
+ユーザーの選択から「思想の断片」を切り出してください。
+
+━━ 文体の絶対規則 ━━
+禁止（1つでも犯したら失敗）:
+・「あなたは〜です」という断定的な人物評
+・自己啓発・成長・可能性・ポジティブな励まし
+・「素晴らしい」「魅力的な」「バランスよく」
+・ChatGPT的な「確かに〜ですね」系の相槌
+・説明的すぎる文章
+・希望で締める結末
+
+必要な空気感:
+・ニーチェの「深淵を覗けば、深淵もこちらを覗く」の冷静さ
+・カミュの不条理——論理的に絶望を語る
+・シオランの苦い観察——断片的で鋭い
+・深夜3時に書いたノートの静けさ
+・断定ではなく、観察。評価ではなく、解剖
+
+━━ 各フィールドの指針 ━━
+definition（思想定義）: その人の思想構造を冷静に解剖する。「〜という構造」「〜という倒錯」
+contradiction（内面的矛盾）: 逆説を突く。「〜でありながら、〜でもある」の緊張
+solitude（孤独性）: 孤独との関係を美化せず観察。「選んだのか、なってしまったのか」
+distance（社会との距離）: 一枚ガラス越しの視点。所属しながら疎外されている感覚
+quote（刺さる一文）: SNSでスクショされる言葉。圧縮された核心。詩的だが難解でない
+
+━━ 出力形式 ━━
+JSONのみ（前後のテキスト・マークダウン一切不要）:
+{"definition":"40〜60字","contradiction":"40〜60字","solitude":"30〜50字","distance":"30〜50字","quote":"20〜35字"}`;
+
+  const userContent = `思想タイプ: ${typeName}
+近接哲学者: ${philosopher.name}（${philosopher.desc}）
+スコア: ${traitSummary}
+
+回答履歴:
+${answerSummary}
+
+この回答の具体的な選択に言及しつつ、5フィールドのJSONを生成してください。
+毎回異なる視点から。同じ文章パターンを繰り返さないこと。`;
 
   const body = JSON.stringify({
     model: "claude-sonnet-4-20250514",
@@ -317,36 +354,22 @@ async function generateAnalysis({ answers, traits, typeName, philosopher }) {
 
   let lastErr;
   for (let attempt = 0; attempt <= API_MAX_RETRY; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt)); // 指数バックオフ
+    if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt));
     try {
       const res = await fetchWithTimeout(
         "https://api.anthropic.com/v1/messages",
         { method:"POST", headers:{"Content-Type":"application/json"}, body },
         API_TIMEOUT_MS
       );
-
-      // レート制限は即リトライ不要
-      if (res.status === 429) {
-        throw Object.assign(new Error("RATE_LIMITED"), { code:"RATE_LIMITED", retryable: false });
-      }
-      // 認証エラーはリトライ不要
-      if (res.status === 401 || res.status === 403) {
-        throw Object.assign(new Error("AUTH_ERROR"), { code:"AUTH_ERROR", retryable: false });
-      }
-      if (!res.ok) {
-        throw Object.assign(new Error(`API_${res.status}`), { code:`API_${res.status}`, retryable: true });
-      }
-
+      if (res.status === 429) throw Object.assign(new Error("RATE_LIMITED"), { code:"RATE_LIMITED", retryable: false });
+      if (res.status === 401 || res.status === 403) throw Object.assign(new Error("AUTH_ERROR"), { code:"AUTH_ERROR", retryable: false });
+      if (!res.ok) throw Object.assign(new Error(`API_${res.status}`), { code:`API_${res.status}`, retryable: true });
       const data = await res.json();
       const raw  = data.content?.find(c=>c.type==="text")?.text ?? "{}";
-      const parsed = JSON.parse(raw.replace(/```json|```/gi,"").trim());
-      return parsed;
-
+      return JSON.parse(raw.replace(/```json|```/gi,"").trim());
     } catch(e) {
       lastErr = e;
-      // リトライ不要エラーは即抜ける
       if (e.code === "RATE_LIMITED" || e.code === "AUTH_ERROR") break;
-      // AbortError（タイムアウト）はリトライ
       if (e.name === "AbortError") { lastErr = Object.assign(e, { code:"TIMEOUT" }); continue; }
     }
   }
@@ -1050,6 +1073,92 @@ const GLOBAL_CSS = `
     .option-btn { font-size: 13px; }
   }
 
+  /* ── ④ 診断開始アニメーション ── */
+  /* 「診断をはじめる」押下後のフェードアウト演出 */
+  @keyframes startFadeOut {
+    0%   { opacity:1; transform:scale(1); }
+    60%  { opacity:0.3; transform:scale(1.01); }
+    100% { opacity:0; transform:scale(1.04); }
+  }
+  @keyframes startScanFlash {
+    0%   { opacity:0; transform:scaleX(0); }
+    30%  { opacity:1; transform:scaleX(1); }
+    70%  { opacity:0.8; transform:scaleX(1); }
+    100% { opacity:0; transform:scaleX(1); }
+  }
+  @keyframes analyzingPulse {
+    0%,100%{ opacity:0.5; letter-spacing:0.18em; }
+    50%    { opacity:1;   letter-spacing:0.28em; }
+  }
+  /* 開始エフェクト用オーバーレイ */
+  .start-overlay {
+    position:fixed; inset:0; z-index:200;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:#090b10;
+    pointer-events:none;
+  }
+  .start-overlay-scan {
+    position:absolute; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,transparent,rgba(80,160,220,0.8),rgba(140,100,240,0.6),transparent);
+    box-shadow:0 0 20px rgba(80,160,220,0.5);
+    animation: startScanFlash 0.8s ease forwards;
+  }
+  .start-analyzing-text {
+    font-family:var(--f-mono); font-size:11px; color:rgba(100,160,220,0.9);
+    letter-spacing:0.18em;
+    animation: analyzingPulse 1.2s ease infinite;
+  }
+
+  /* ── ⑦ 結果カード ガラス風演出 ── */
+  /* ガラスカードの共通スタイル */
+  .glass-card {
+    background: rgba(255,255,255,0.022);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 18px;
+    padding: 22px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1),
+                border-color 0.3s ease,
+                box-shadow 0.3s ease;
+    /* 上部光沢ライン */
+  }
+  .glass-card::before {
+    content:'';
+    position:absolute; top:0; left:10%; right:10%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
+    border-radius:1px;
+  }
+  /* ホバー演出 */
+  @media (hover:hover) {
+    .glass-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,0.12);
+      box-shadow:
+        0 12px 40px rgba(0,0,0,0.4),
+        0 0 0 1px rgba(255,255,255,0.04),
+        inset 0 0 30px rgba(80,120,180,0.03);
+    }
+  }
+
+  /* 結果カードの段階フェード */
+  .result-reveal {
+    opacity:0;
+    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+
+  /* QUOTEカードの浮遊感 */
+  @keyframes quoteFloat {
+    0%,100%{ transform:translateY(0) rotate(-0.2deg); }
+    50%    { transform:translateY(-4px) rotate(0.2deg); }
+  }
+  .quote-card-float {
+    animation: quoteFloat 7s ease-in-out infinite;
+  }
+
   /* ── 選択肢クリック時の波紋アニメーション ── */
   @keyframes optionRipple {
     from { transform:scale(0); opacity:0.4; }
@@ -1064,12 +1173,6 @@ const GLOBAL_CSS = `
     animation: optionRipple 0.55s cubic-bezier(0.4,0,0.2,1) forwards;
   }
 
-  /* ── 結果カード段階表示（stagger強化） ── */
-  .result-reveal {
-    opacity:0;
-    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
-  }
-
   /* ── エラーUI ── */
   @keyframes errorShake {
     0%,100%{ transform:translateX(0); }
@@ -1080,7 +1183,6 @@ const GLOBAL_CSS = `
   }
   .error-shake { animation: errorShake 0.4s ease forwards; }
 
-  /* ── retry ボタン ── */
   .btn-retry {
     display:inline-flex; align-items:center; gap:7px;
     padding:11px 22px;
@@ -1093,8 +1195,13 @@ const GLOBAL_CSS = `
 
   /* ── safe-area-inset（iPhone ノッチ対応） ── */
   .safe-bottom { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .saving-spinner {
+    width:12px; height:12px; border-radius:50%;
+    border:1.5px solid rgba(120,190,240,0.25);
+    border-top-color:rgba(120,190,240,0.9);
+    animation: spin 0.75s linear infinite;
+  }
 `;
-
 // ───────────────────────────────────────────────────────────────
 //  UIコンポーネント
 // ───────────────────────────────────────────────────────────────
@@ -1578,6 +1685,71 @@ function useSaveImage(cardRef, wrapperRef) {
   return { save, saving, saved, saveErr };
 }
 
+// ── ④ 診断開始アニメーション：StartOverlay
+// 「診断をはじめる」押下後に一瞬表示されるフルスクリーン演出
+function StartOverlay({ onDone }) {
+  const [scanTop, setScanTop] = useState(0);
+  const MESSAGES = [
+    "THOUGHT ANALYZING...",
+    "言語パターンを照合中",
+    "実存傾向を分析中",
+    "哲学アーカイブへ接続中",
+  ];
+  const [msgIdx, setMsgIdx] = useState(0);
+
+  useEffect(() => {
+    // スキャンライン移動
+    const scanId = setInterval(() => setScanTop(t => Math.min(t + 3, 105)), 20);
+    // メッセージ切り替え
+    const msgId  = setInterval(() => setMsgIdx(i => (i + 1) % MESSAGES.length), 700);
+    // 2.2秒後に完了
+    const doneId = setTimeout(onDone, 2200);
+    return () => { clearInterval(scanId); clearInterval(msgId); clearTimeout(doneId); };
+  }, []);
+
+  return (
+    <div className="start-overlay" style={{
+      animation: "fadeIn 0.15s ease forwards",
+    }}>
+      {/* スキャンライン */}
+      <div className="start-overlay-scan" style={{ top:`${scanTop}%` }} />
+
+      {/* グロー円 */}
+      <div style={{
+        position:"absolute", width:300, height:300,
+        borderRadius:"50%", top:"50%", left:"50%",
+        transform:"translate(-50%,-50%)",
+        background:"radial-gradient(circle, rgba(60,100,200,0.12) 0%, transparent 70%)",
+        animation:"glowPulse 1s ease-in-out infinite",
+        pointerEvents:"none",
+      }} />
+
+      {/* ロゴ */}
+      <div style={{
+        fontFamily:"var(--f-serif)", fontStyle:"italic", fontWeight:300,
+        fontSize:"clamp(28px,6vw,44px)", letterSpacing:"0.1em",
+        background:"linear-gradient(160deg,rgba(228,233,248,0.95),rgba(140,175,225,0.9))",
+        WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+        marginBottom:28,
+      }}>Noema</div>
+
+      {/* 解析テキスト */}
+      <div className="start-analyzing-text">{MESSAGES[msgIdx]}</div>
+
+      {/* ドットインジケーター */}
+      <div style={{ display:"flex", gap:6, marginTop:20 }}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{
+            width:4, height:4, borderRadius:"50%",
+            background:"rgba(100,160,220,0.6)",
+            animation:`shimmer 1.2s ease-in-out ${i*0.3}s infinite`,
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // スコアバー（アニメーション付き）
 function ScoreBar({ label, value, color, delay=0 }) {
   const [width, setWidth] = useState(0);
@@ -2005,6 +2177,8 @@ export default function App() {
   const [showTyping,   setShowTyping]   = useState(false);
   const [showQuestion, setShowQuestion] = useState(true);
   const [qKey, setQKey]                 = useState(0);
+  // ④ 診断開始オーバーレイ
+  const [showStartOverlay, setShowStartOverlay] = useState(false);
 
   const containerRef    = useRef(null);
   const shareCardRef    = useRef(null);
@@ -2168,6 +2342,14 @@ export default function App() {
 
       {/* 動的背景グロー */}
       <GlowOrbs phase={phase} />
+
+      {/* ── ④ 診断開始オーバーレイ ── */}
+      {showStartOverlay && (
+        <StartOverlay onDone={() => {
+          setShowStartOverlay(false);
+          setPhase("quiz");
+        }} />
+      )}
 
       {/* タイプ別結果背景グロー */}
       {phase === "result" && resultGlowColors && (() => {
@@ -2356,7 +2538,8 @@ export default function App() {
               </p>
 
               {/* ── 起動ボタン ── */}
-              <button className="btn-start" onClick={() => setPhase("quiz")}>
+              {/* ④ onClick: オーバーレイを表示してから画面遷移 */}
+              <button className="btn-start" onClick={() => setShowStartOverlay(true)}>
                 <span style={{ fontFamily:"var(--f-mono)", fontSize:9,
                   color:"rgba(100,155,210,0.6)", letterSpacing:"0.15em" }}>▶</span>
                 診断をはじめる
@@ -2668,72 +2851,103 @@ export default function App() {
               </div>
             </div>
 
-            {/* ② QUOTE カード — スクショ映え */}
+            {/* ② QUOTE カード — ⑦ガラス風浮遊演出に強化 */}
             {result.quote && (
-              <div className="result-card-stagger card-hover" style={{
-                margin:"0 0 18px", padding:"32px 28px 28px",
-                background:"rgba(255,255,255,0.018)",
-                border:"1px solid rgba(255,255,255,0.07)",
-                borderLeft:`2px solid ${result.typeColor}55`,
-                borderRadius:"0 18px 18px 0",
-                position:"relative",
-                backdropFilter:"blur(14px)",
-              }}>
-                <div style={{ position:"absolute", top:16, left:28, fontFamily:"var(--f-mono)",
-                  fontSize:8, letterSpacing:"0.24em", color:`${result.typeColor}88` }}>QUOTE</div>
+              <div
+                className="result-card-stagger quote-card-float"
+                style={{
+                  margin:"0 0 20px", padding:"36px 30px 30px",
+                  background:"rgba(255,255,255,0.016)",
+                  border:"1px solid rgba(255,255,255,0.08)",
+                  borderLeft:`3px solid ${result.typeColor}66`,
+                  borderRadius:"0 20px 20px 0",
+                  position:"relative",
+                  backdropFilter:"blur(16px)",
+                  WebkitBackdropFilter:"blur(16px)",
+                  boxShadow:`0 4px 30px rgba(0,0,0,0.25), inset 0 0 40px rgba(80,120,200,0.025)`,
+                }}>
+                {/* 上部光沢 */}
+                <div style={{
+                  position:"absolute", top:0, left:"5%", right:"5%", height:1,
+                  background:`linear-gradient(90deg,transparent,${result.typeColor}44,transparent)`,
+                }} />
+                {/* QUOTEラベル */}
+                <div style={{
+                  position:"absolute", top:16, left:30,
+                  fontFamily:"var(--f-mono)", fontSize:8,
+                  letterSpacing:"0.28em", color:`${result.typeColor}88`,
+                }}>QUOTE</div>
+                {/* 引用記号（装飾） */}
+                <div style={{
+                  position:"absolute", top:22, right:24,
+                  fontFamily:"var(--f-serif)", fontSize:36, lineHeight:1,
+                  color:`${result.typeColor}18`, fontStyle:"italic",
+                  userSelect:"none",
+                }}>"</div>
                 <p style={{
                   fontFamily:"var(--f-serif)", fontStyle:"italic", fontWeight:300,
-                  fontSize:"clamp(16px,3.8vw,21px)", lineHeight:1.75,
-                  color:"rgba(218,226,242,0.94)", marginTop:18, letterSpacing:"0.025em",
+                  fontSize:"clamp(17px,4vw,22px)", lineHeight:1.8,
+                  color:"rgba(220,228,244,0.95)", marginTop:18,
+                  letterSpacing:"0.025em",
+                  textShadow:`0 0 30px ${result.typeColor}22`,
                 }}>
                   「{result.quote}」
                 </p>
               </div>
             )}
 
-            {/* ③ 思想定義 */}
+            {/* ③ 思想定義 — ⑦glass-card化 */}
             {result.definition && (
-              <Card className="result-card-stagger"
-                style={{ background:"rgba(45,65,115,0.07)", border:"1px solid rgba(75,105,165,0.16)" }}>
+              <div
+                className="glass-card result-card-stagger"
+                style={{ background:"rgba(40,60,110,0.07)", border:"1px solid rgba(70,100,160,0.18)" }}>
                 <SLabel>思想定義</SLabel>
-                <p style={{ fontFamily:"var(--f-jp)", fontSize:14, lineHeight:2.05,
-                  color:"rgba(198,212,232,0.88)", fontWeight:300 }}>
+                <p style={{
+                  fontFamily:"var(--f-jp)", fontSize:"clamp(13px,3.2vw,15px)",
+                  lineHeight:2.1, color:"rgba(198,212,232,0.88)", fontWeight:300,
+                }}>
                   {result.definition}
                 </p>
-              </Card>
+              </div>
             )}
 
-            {/* ④ 内面的矛盾 + 孤独・距離 */}
+            {/* ④ 内面的矛盾 + 孤独・距離 — ⑦glass-card化 */}
             <div className="result-card-stagger" style={{ marginBottom:16 }}>
               {result.contradiction && (
-                <div className="card-hover" style={{ padding:"18px 20px", marginBottom:12,
-                  background:"rgba(90,55,125,0.06)", border:"1px solid rgba(115,75,155,0.16)",
-                  borderRadius:16, backdropFilter:"blur(10px)",
-                  transition:"all 0.26s ease" }}>
+                <div className="glass-card" style={{
+                  marginBottom:12,
+                  background:"rgba(85,50,120,0.07)", border:"1px solid rgba(110,70,150,0.18)",
+                }}>
                   <SLabel color="rgba(145,95,200,0.8)">内面的矛盾</SLabel>
-                  <p style={{ fontFamily:"var(--f-jp)", fontSize:13, lineHeight:2,
-                    color:"rgba(190,170,218,0.82)", fontWeight:300 }}>
+                  <p style={{
+                    fontFamily:"var(--f-jp)", fontSize:"clamp(12px,3vw,14px)",
+                    lineHeight:2, color:"rgba(190,170,218,0.85)", fontWeight:300,
+                  }}>
                     {result.contradiction}
                   </p>
                 </div>
               )}
               <div className="grid-2col" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                 {result.solitude && (
-                  <div className="card-hover" style={{ padding:"16px 18px",
-                    background:"rgba(38,78,100,0.07)", border:"1px solid rgba(58,108,140,0.16)",
-                    borderRadius:16, backdropFilter:"blur(10px)", transition:"all 0.26s ease" }}>
-                    <SLabel color="rgba(75,145,180,0.8)" style={{ fontSize:8 }}>孤独性</SLabel>
-                    <p style={{ fontFamily:"var(--f-jp)", fontSize:12, lineHeight:1.95,
-                      color:"rgba(158,192,215,0.78)", fontWeight:300 }}>{result.solitude}</p>
+                  <div className="glass-card" style={{ marginBottom:0,
+                    background:"rgba(35,72,95,0.07)", border:"1px solid rgba(55,102,135,0.18)",
+                  }}>
+                    <SLabel color="rgba(75,145,180,0.8)">孤独性</SLabel>
+                    <p style={{
+                      fontFamily:"var(--f-jp)", fontSize:"clamp(11px,2.8vw,13px)",
+                      lineHeight:1.95, color:"rgba(158,192,215,0.82)", fontWeight:300,
+                    }}>{result.solitude}</p>
                   </div>
                 )}
                 {result.distance && (
-                  <div className="card-hover" style={{ padding:"16px 18px",
-                    background:"rgba(55,78,48,0.07)", border:"1px solid rgba(78,110,68,0.16)",
-                    borderRadius:16, backdropFilter:"blur(10px)", transition:"all 0.26s ease" }}>
-                    <SLabel color="rgba(95,158,98,0.8)" style={{ fontSize:8 }}>社会との距離</SLabel>
-                    <p style={{ fontFamily:"var(--f-jp)", fontSize:12, lineHeight:1.95,
-                      color:"rgba(152,192,158,0.78)", fontWeight:300 }}>{result.distance}</p>
+                  <div className="glass-card" style={{ marginBottom:0,
+                    background:"rgba(50,72,44,0.07)", border:"1px solid rgba(72,104,64,0.18)",
+                  }}>
+                    <SLabel color="rgba(95,158,98,0.8)">社会との距離</SLabel>
+                    <p style={{
+                      fontFamily:"var(--f-jp)", fontSize:"clamp(11px,2.8vw,13px)",
+                      lineHeight:1.95, color:"rgba(152,192,158,0.82)", fontWeight:300,
+                    }}>{result.distance}</p>
                   </div>
                 )}
               </div>
