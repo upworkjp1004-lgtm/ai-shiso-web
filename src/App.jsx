@@ -286,6 +286,18 @@ function resolveType(traits)        { return THOUGHT_TYPES.find(t => t.cond(trai
 function resolvePhilosophers(traits){ return [...PHILOSOPHERS].map(p=>({...p,score:p.affinity(traits)})).sort((a,b)=>b.score-a.score).slice(0,2); }
 function getFallback(id)            { return FALLBACK_BY_TYPE[id] ?? FALLBACK_BY_TYPE.default; }
 
+// ── APIタイムアウト定数
+const API_TIMEOUT_MS = 18_000;
+const API_MAX_RETRY  = 2;
+
+// タイムアウト付きfetch
+function fetchWithTimeout(url, options, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...options, signal: ctrl.signal })
+    .finally(() => clearTimeout(timer));
+}
+
 async function generateAnalysis({ answers, traits, typeName, philosopher }) {
   const answerSummary = answers.map((a,i)=>`Q${i+1}: ${a.question} → ${a.answer}`).join("\n");
   const traitSummary  = Object.entries(traits).map(([k,v])=>`${k}:${v}`).join(", ");
@@ -294,14 +306,51 @@ async function generateAnalysis({ answers, traits, typeName, philosopher }) {
 文体：実存主義/虚無主義/ロマン主義の哲学的温度感。短く刺さる。スクショされる一文を含む。
 出力（JSONのみ）:{"definition":"40〜60字","contradiction":"40〜60字","solitude":"30〜50字","distance":"30〜50字","quote":"20〜35字"}`;
   const userContent = `タイプ:${typeName}\n哲学者:${philosopher.name}\nスコア:${traitSummary}\n回答:\n${answerSummary}\n\n各回答の具体的選択に言及してください。毎回異なる視点で。`;
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, temperature:1, system:systemPrompt, messages:[{role:"user",content:userContent}] }),
+
+  const body = JSON.stringify({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1000,
+    temperature: 1,
+    system: systemPrompt,
+    messages: [{ role:"user", content: userContent }],
   });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  const data = await res.json();
-  const raw  = data.content?.find(c=>c.type==="text")?.text ?? "{}";
-  try { return JSON.parse(raw.replace(/```json|```/gi,"").trim()); } catch { return null; }
+
+  let lastErr;
+  for (let attempt = 0; attempt <= API_MAX_RETRY; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt)); // 指数バックオフ
+    try {
+      const res = await fetchWithTimeout(
+        "https://api.anthropic.com/v1/messages",
+        { method:"POST", headers:{"Content-Type":"application/json"}, body },
+        API_TIMEOUT_MS
+      );
+
+      // レート制限は即リトライ不要
+      if (res.status === 429) {
+        throw Object.assign(new Error("RATE_LIMITED"), { code:"RATE_LIMITED", retryable: false });
+      }
+      // 認証エラーはリトライ不要
+      if (res.status === 401 || res.status === 403) {
+        throw Object.assign(new Error("AUTH_ERROR"), { code:"AUTH_ERROR", retryable: false });
+      }
+      if (!res.ok) {
+        throw Object.assign(new Error(`API_${res.status}`), { code:`API_${res.status}`, retryable: true });
+      }
+
+      const data = await res.json();
+      const raw  = data.content?.find(c=>c.type==="text")?.text ?? "{}";
+      const parsed = JSON.parse(raw.replace(/```json|```/gi,"").trim());
+      return parsed;
+
+    } catch(e) {
+      lastErr = e;
+      // リトライ不要エラーは即抜ける
+      if (e.code === "RATE_LIMITED" || e.code === "AUTH_ERROR") break;
+      // AbortError（タイムアウト）はリトライ
+      if (e.name === "AbortError") { lastErr = Object.assign(e, { code:"TIMEOUT" }); continue; }
+    }
+  }
+  throw lastErr;
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -971,12 +1020,79 @@ const GLOBAL_CSS = `
     animation: spin 0.75s linear infinite;
   }
 
-  /* ── モバイル ── */
+  /* ── モバイル最適化（iPhone Safari前提） ── */
   @media (max-width:480px) {
     .grid-2col { grid-template-columns:1fr !important; }
     .hide-mobile { display:none !important; }
     .card-hover:hover { transform:none; }
+
+    /* タップ領域を広げる */
+    .option-btn { padding: 15px 18px; margin-bottom: 11px; min-height: 48px; }
+    .btn-next   { padding: 14px 26px; min-height: 48px; }
+    .btn-share-base { min-height: 56px; }
+
+    /* iOSのフォントサイズ自動拡大を防ぐ */
+    html { -webkit-text-size-adjust: 100%; }
+
+    /* スクロール最適化 */
+    .scroll-container { -webkit-overflow-scrolling: touch; }
+
+    /* レーダーチャートをモバイルでリサイズ */
+    .radar-wrap { height: 150px !important; }
+
+    /* 深度ドットを少し大きく */
+    .depth-dot { width: 7px !important; height: 7px !important; }
+
+    /* 共有ボタンを縦並びに */
+    .share-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
   }
+  @media (max-width:360px) {
+    .option-btn { font-size: 13px; }
+  }
+
+  /* ── 選択肢クリック時の波紋アニメーション ── */
+  @keyframes optionRipple {
+    from { transform:scale(0); opacity:0.4; }
+    to   { transform:scale(2.5); opacity:0; }
+  }
+  .option-btn-ripple {
+    position:absolute; border-radius:50%;
+    width:80px; height:80px;
+    background: rgba(100,160,230,0.25);
+    transform:scale(0);
+    pointer-events:none;
+    animation: optionRipple 0.55s cubic-bezier(0.4,0,0.2,1) forwards;
+  }
+
+  /* ── 結果カード段階表示（stagger強化） ── */
+  .result-reveal {
+    opacity:0;
+    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+
+  /* ── エラーUI ── */
+  @keyframes errorShake {
+    0%,100%{ transform:translateX(0); }
+    20%    { transform:translateX(-6px); }
+    40%    { transform:translateX(6px); }
+    60%    { transform:translateX(-4px); }
+    80%    { transform:translateX(4px); }
+  }
+  .error-shake { animation: errorShake 0.4s ease forwards; }
+
+  /* ── retry ボタン ── */
+  .btn-retry {
+    display:inline-flex; align-items:center; gap:7px;
+    padding:11px 22px;
+    background:rgba(140,60,60,0.15); border:1px solid rgba(200,90,90,0.28);
+    border-radius:10px; color:rgba(220,150,150,0.9);
+    font-family:var(--f-mono); font-size:10px; letter-spacing:0.14em;
+    cursor:pointer; transition:all 0.22s ease;
+  }
+  .btn-retry:hover { background:rgba(160,70,70,0.22); border-color:rgba(220,100,100,0.4); }
+
+  /* ── safe-area-inset（iPhone ノッチ対応） ── */
+  .safe-bottom { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 `;
 
 // ───────────────────────────────────────────────────────────────
@@ -1875,29 +1991,42 @@ function Card({ children, style={}, className="", hover=true }) {
 // ───────────────────────────────────────────────────────────────
 export default function App() {
   const [phase, setPhase]           = useState("home");
-  const [currentQId, setCurrentQId] = useState("root");   // 現在の質問ID
-  const [answers, setAnswers]       = useState([]);        // { question, answer, scores, qId }[]
-  const [selected, setSelected]     = useState(null);      // { label, scores, nextId }
+  const [currentQId, setCurrentQId] = useState("root");
+  const [answers, setAnswers]       = useState([]);
+  const [selected, setSelected]     = useState(null);
   const [result, setResult]         = useState(null);
   const [apiError, setApiError]     = useState(null);
+  const [apiErrorCode, setApiErrorCode] = useState(null); // エラーコード分類
   const [pendingRun, setPendingRun] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);        // リトライ回数表示
 
   // 会話UI用
-  const [showReaction, setShowReaction] = useState(false);  // リアクション表示中
-  const [showTyping,   setShowTyping]   = useState(false);  // ...タイピング中
-  const [showQuestion, setShowQuestion] = useState(true);   // 質問本体表示
-  const [qKey, setQKey]                 = useState(0);      // フェード再トリガー用
+  const [showReaction, setShowReaction] = useState(false);
+  const [showTyping,   setShowTyping]   = useState(false);
+  const [showQuestion, setShowQuestion] = useState(true);
+  const [qKey, setQKey]                 = useState(0);
 
-  const containerRef   = useRef(null);
-  const shareCardRef   = useRef(null);
+  const containerRef    = useRef(null);
+  const shareCardRef    = useRef(null);
   const shareWrapperRef = useRef(null);
   const { save, saving, saved, saveErr } = useSaveImage(shareCardRef, shareWrapperRef);
-  const currentQ = Q_TREE[currentQId];
 
-  // 進行済み質問数（プログレス表示用）
+  // useMemo で毎レンダーの再計算を防ぐ
+  const currentQ      = Q_TREE[currentQId];
   const answeredCount = answers.length;
-  // ツリーの最大深度は4層なので概算で8問想定
-  const estimatedTotal = 8;
+
+  const radarData = React.useMemo(() => result?.traits ? [
+    { axis:"自由",  value: result.traits.freedom },
+    { axis:"理想",  value: result.traits.idealism },
+    { axis:"感情",  value: result.traits.emotion },
+    { axis:"ロマン",value: result.traits.romanticism },
+    { axis:"孤独",  value: result.traits.loneliness },
+    { axis:"論理",  value: result.traits.logic },
+  ] : [], [result?.traits]);
+
+  const typeEntry = React.useMemo(() =>
+    result ? THOUGHT_TYPES.find(t => t.name === result.typeName) : null,
+  [result?.typeName]);
 
   useEffect(() => {
     containerRef.current?.scrollTo({ top:0, behavior:"smooth" });
@@ -1957,16 +2086,31 @@ export default function App() {
   const runDiagnosis = useCallback(async (allAnswers) => {
     setPhase("thinking");
     setApiError(null);
+    setApiErrorCode(null);
     setPendingRun(() => () => runDiagnosis(allAnswers));
     const traits       = calcTraits(allAnswers);
     const typeEntry    = resolveType(traits);
     const philosophers = resolvePhilosophers(traits);
     const mainPhil     = philosophers[0];
     let analysis;
-    try   { analysis = await generateAnalysis({ answers:allAnswers, traits, typeName:typeEntry.name, philosopher:mainPhil }); }
-    catch { analysis = null; }
+    try {
+      analysis = await generateAnalysis({
+        answers: allAnswers, traits,
+        typeName: typeEntry.name, philosopher: mainPhil,
+      });
+    } catch(e) {
+      analysis = null;
+      // エラー分類をstateに保存（エラー画面で分岐表示用）
+      const code = e?.code ?? "UNKNOWN";
+      setApiErrorCode(code);
+      console.warn("[diagnosis] API failed:", code, e?.message);
+    }
+    // API失敗でも必ずフォールバックで結果を出す
     if (!analysis?.quote) analysis = getFallback(typeEntry.id);
-    setResult({ typeName:typeEntry.name, typeColor:typeEntry.color, typeId:typeEntry.id, traits, philosophers, ...analysis });
+    setResult({
+      typeName: typeEntry.name, typeColor: typeEntry.color,
+      typeId: typeEntry.id, traits, philosophers, ...analysis,
+    });
     setPhase("result");
   }, []);
 
@@ -2000,24 +2144,22 @@ export default function App() {
       setTimeout(() => setCopied(false), 2500);
     }
   }, []);
-  const restart = () => {
+  const restart = useCallback(() => {
     setPhase("home"); setCurrentQId("root"); setAnswers([]);
-    setSelected(null); setResult(null); setApiError(null);
+    setSelected(null); setResult(null); setApiError(null); setApiErrorCode(null);
     setShowReaction(false); setShowTyping(false); setShowQuestion(true);
-    setQKey(0); setPendingReaction(null);
-  };
+    setQKey(0); setPendingReaction(null); setRetryCount(0);
+  }, []);
 
   // リアクション文（pendingReactionはstate経由で保持する）
   const [pendingReaction, setPendingReaction] = useState(null);
 
-  const radarData = result?.traits ? [
-    { axis:"自由",  value:result.traits.freedom },
-    { axis:"理想",  value:result.traits.idealism },
-    { axis:"感情",  value:result.traits.emotion },
-    { axis:"ロマン",value:result.traits.romanticism },
-    { axis:"孤独",  value:result.traits.loneliness },
-    { axis:"論理",  value:result.traits.logic },
-  ] : [];
+  // タイプ別グロー（useMemo化）
+  const resultGlowColors = React.useMemo(() => {
+    if (!result) return null;
+    const te = THOUGHT_TYPES.find(t => t.name === result.typeName);
+    return te?.glow ?? ["rgba(40,55,110,0.55)","rgba(55,35,100,0.4)","rgba(30,50,90,0.28)"];
+  }, [result?.typeName]);
 
   return (
     <div style={{ minHeight:"100vh", background:"var(--c-bg)", color:"var(--c-text)",
@@ -2028,9 +2170,8 @@ export default function App() {
       <GlowOrbs phase={phase} />
 
       {/* タイプ別結果背景グロー */}
-      {phase === "result" && result && (() => {
-        const typeEntry = THOUGHT_TYPES.find(t => t.name === result.typeName);
-        const [g1, g2, g3] = typeEntry?.glow ?? ["rgba(40,55,110,0.55)","rgba(55,35,100,0.4)","rgba(30,50,90,0.28)"];
+      {phase === "result" && resultGlowColors && (() => {
+        const [g1, g2, g3] = resultGlowColors;
         return (
           <>
             <div style={{ position:"fixed", width:580, height:580, top:-160, right:-160, borderRadius:"50%",
@@ -2056,8 +2197,13 @@ export default function App() {
         backgroundRepeat:"repeat", backgroundSize:"128px" }} />
 
       {/* スクロールコンテナ */}
-      <div ref={containerRef} style={{ position:"relative", zIndex:1,
-        maxWidth:600, margin:"0 auto", padding:"0 20px 96px", overflowY:"auto", maxHeight:"100vh" }}>
+      <div ref={containerRef}
+        className="scroll-container safe-bottom"
+        style={{ position:"relative", zIndex:1,
+          maxWidth:600, margin:"0 auto", padding:"0 20px 96px",
+          overflowY:"auto", maxHeight:"100vh",
+          WebkitOverflowScrolling:"touch",  // iOS Safari用
+        }}>
 
         {/* ══ HOME ══════════════════════════════════════════════ */}
         {phase === "home" && (
@@ -2378,8 +2524,21 @@ export default function App() {
                       <button
                         key={`${qKey}-${opt.label}`}
                         className={`option-btn option-stagger ${selected?.label === opt.label ? "selected" : ""}`}
-                        onClick={() => handleSelect(opt)}
-                        style={{ animationDelay:`${0.08 + i*0.07}s` }}
+                        onClick={(e) => {
+                          handleSelect(opt);
+                          // 波紋エフェクト
+                          const btn  = e.currentTarget;
+                          const rect = btn.getBoundingClientRect();
+                          const rip  = document.createElement("span");
+                          rip.className = "option-btn-ripple";
+                          rip.style.left = `${e.clientX - rect.left - 40}px`;
+                          rip.style.top  = `${e.clientY - rect.top - 40}px`;
+                          btn.appendChild(rip);
+                          setTimeout(() => rip.remove(), 600);
+                          // Haptic（iOS Safari）
+                          if (navigator.vibrate) navigator.vibrate(10);
+                        }}
+                        style={{ animationDelay:`${0.08 + i*0.07}s`, position:"relative", overflow:"hidden" }}
                       >
                         {opt.label}
                       </button>
@@ -2438,6 +2597,30 @@ export default function App() {
         {/* ══ RESULT ═══════════════════════════════════════════ */}
         {phase === "result" && result && (
           <div className="phase-result" style={{ paddingTop:52 }}>
+
+            {/* API失敗フォールバック通知（静かに表示） */}
+            {apiErrorCode && (
+              <div style={{
+                marginBottom:24, padding:"10px 16px",
+                background:"rgba(100,80,30,0.08)", border:"1px solid rgba(160,130,60,0.18)",
+                borderRadius:10, display:"flex", alignItems:"center", gap:10,
+                animation:"fadeUp 0.5s ease forwards",
+              }}>
+                <span style={{ fontSize:14, opacity:0.7 }}>◎</span>
+                <div>
+                  <div style={{ fontFamily:"var(--f-mono)", fontSize:9,
+                    color:"rgba(180,155,80,0.75)", letterSpacing:"0.1em", marginBottom:3 }}>
+                    {apiErrorCode === "TIMEOUT" ? "AI応答タイムアウト" :
+                     apiErrorCode === "RATE_LIMITED" ? "APIレート制限" :
+                     "AIとの接続に問題が発生"}
+                  </div>
+                  <div style={{ fontFamily:"var(--f-jp)", fontSize:11,
+                    color:"rgba(160,140,80,0.65)", fontWeight:300 }}>
+                    スコアから算出したフォールバック結果を表示しています。
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* ① タイプ名ヘッダー */}
             <div className="result-card-stagger" style={{ textAlign:"center", marginBottom:40 }}>
@@ -2702,7 +2885,7 @@ export default function App() {
               )}
 
               {/* ボタン3つ */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+              <div className="share-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
 
                 {/* 画像保存 */}
                 <button
