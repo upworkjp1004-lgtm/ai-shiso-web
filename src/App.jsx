@@ -185,40 +185,151 @@ const Q_TREE = {
 // 後方互換用フラット配列（calcTraitsはanswers[]を使うので変更不要）
 const QUESTIONS = Object.values(Q_TREE);
 
+// ── 哲学者データベース（拡張版）
+// wikipedia: 日本語Wikipedia URL
+// school: 思想系統ラベル（複数可）
+// concept: 代表概念
+// era: 時代
+// difficulty: 難易度 1-5
+// portrait: 実在する人物の白黒写真代替として頭文字アバター用のイニシャル
 const PHILOSOPHERS = [
-  { name:"フリードリヒ・ニーチェ", emoji:"⚡", desc:"力への意志と永劫回帰",
+  {
+    name:"フリードリヒ・ニーチェ", nameEn:"Friedrich Nietzsche",
+    emoji:"⚡", initials:"N",
+    desc:"力への意志と永劫回帰",
     quote:"深淵を覗くとき、深淵もまたこちらを覗いている。",
     keywords:["力への意志","超人","永劫回帰","虚無克服"],
-    affinity:(t) => t.freedom*0.35 + t.nihilism*0.25 + t.idealism*0.2 + (100-t.community)*0.2 },
-  { name:"アルベール・カミュ", emoji:"🚬", desc:"不条理の中の反抗",
+    school:["超人思想","ニヒリズム克服","実存主義前史"],
+    concept:"力への意志", era:"19世紀", difficulty:4,
+    wikipedia:"https://ja.wikipedia.org/wiki/フリードリヒ・ニーチェ",
+    affinity:(t) => t.freedom*0.35 + t.nihilism*0.25 + t.idealism*0.2 + (100-t.community)*0.2,
+  },
+  {
+    name:"アルベール・カミュ", nameEn:"Albert Camus",
+    emoji:"🚬", initials:"C",
+    desc:"不条理の中の反抗",
     quote:"不条理を認識したうえで、それでも生き続けることが反抗だ。",
     keywords:["不条理","反抗","シーシュポス","地中海"],
-    affinity:(t) => t.nihilism*0.35 + t.loneliness*0.3 + t.realism*0.2 + (100-t.idealism)*0.15 },
-  { name:"ジャン=ポール・サルトル", emoji:"📖", desc:"実存は本質に先立つ",
+    school:["不条理主義","実存主義"],
+    concept:"不条理と反抗", era:"20世紀", difficulty:3,
+    wikipedia:"https://ja.wikipedia.org/wiki/アルベール・カミュ",
+    affinity:(t) => t.nihilism*0.35 + t.loneliness*0.3 + t.realism*0.2 + (100-t.idealism)*0.15,
+  },
+  {
+    name:"ジャン=ポール・サルトル", nameEn:"Jean-Paul Sartre",
+    emoji:"📖", initials:"S",
+    desc:"実存は本質に先立つ",
     quote:"人間は自由の刑に処されている。",
     keywords:["実存主義","自由と責任","他者は地獄","投企"],
-    affinity:(t) => t.freedom*0.4 + t.loneliness*0.25 + t.idealism*0.2 + t.nihilism*0.15 },
-  { name:"ハンナ・アーレント", emoji:"🌍", desc:"公共性と思考の深淵",
+    school:["実存主義","現象学"],
+    concept:"自由と責任", era:"20世紀", difficulty:4,
+    wikipedia:"https://ja.wikipedia.org/wiki/ジャン＝ポール・サルトル",
+    affinity:(t) => t.freedom*0.4 + t.loneliness*0.25 + t.idealism*0.2 + t.nihilism*0.15,
+  },
+  {
+    name:"ハンナ・アーレント", nameEn:"Hannah Arendt",
+    emoji:"🌍", initials:"A",
+    desc:"公共性と思考の深淵",
     quote:"悪の凡庸さとは、思考の欠如から生まれる。",
     keywords:["公共性","思考","複数性","活動的生活"],
-    affinity:(t) => t.community*0.35 + t.logic*0.3 + (100-t.freedom)*0.2 + t.idealism*0.15 },
-  { name:"ルートヴィヒ・ウィトゲンシュタイン", emoji:"🔇", desc:"語りえないものについては沈黙せよ",
+    school:["政治哲学","実存主義"],
+    concept:"複数性と公共性", era:"20世紀", difficulty:4,
+    wikipedia:"https://ja.wikipedia.org/wiki/ハンナ・アーレント",
+    affinity:(t) => t.community*0.35 + t.logic*0.3 + (100-t.freedom)*0.2 + t.idealism*0.15,
+  },
+  {
+    name:"ルートヴィヒ・ウィトゲンシュタイン", nameEn:"Ludwig Wittgenstein",
+    emoji:"🔇", initials:"W",
+    desc:"語りえないものについては沈黙せよ",
     quote:"語りえないことについては、沈黙しなければならない。",
     keywords:["言語ゲーム","沈黙","論理","写像理論"],
-    affinity:(t) => t.logic*0.45 + (100-t.emotion)*0.25 + t.loneliness*0.2 + t.nihilism*0.1 },
-  { name:"ジャン・ボードリヤール", emoji:"📺", desc:"シミュラクルと超現実",
+    school:["分析哲学","言語哲学"],
+    concept:"言語の限界", era:"20世紀", difficulty:5,
+    wikipedia:"https://ja.wikipedia.org/wiki/ルートヴィヒ・ウィトゲンシュタイン",
+    affinity:(t) => t.logic*0.45 + (100-t.emotion)*0.25 + t.loneliness*0.2 + t.nihilism*0.1,
+  },
+  {
+    name:"ジャン・ボードリヤール", nameEn:"Jean Baudrillard",
+    emoji:"📺", initials:"B",
+    desc:"シミュラクルと超現実",
     quote:"現実はすでに消え去った。我々が生きているのはそのコピーのコピーだ。",
     keywords:["シミュラクル","消費社会","ハイパーリアル","記号"],
-    affinity:(t) => t.nihilism*0.4 + (100-t.idealism)*0.25 + t.realism*0.2 + (100-t.romanticism)*0.15 },
-  { name:"ソーレン・キェルケゴール", emoji:"🌊", desc:"実存の三段階と不安",
+    school:["構造主義後","冷笑主義","批判理論"],
+    concept:"シミュラクル", era:"20世紀", difficulty:5,
+    wikipedia:"https://ja.wikipedia.org/wiki/ジャン・ボードリヤール",
+    affinity:(t) => t.nihilism*0.4 + (100-t.idealism)*0.25 + t.realism*0.2 + (100-t.romanticism)*0.15,
+  },
+  {
+    name:"ソーレン・キェルケゴール", nameEn:"Søren Kierkegaard",
+    emoji:"🌊", initials:"K",
+    desc:"実存の三段階と不安",
     quote:"不安とは自由のめまいである。",
     keywords:["実存","不安","信仰の跳躍","単独者"],
-    affinity:(t) => t.loneliness*0.35 + t.idealism*0.3 + t.romanticism*0.2 + (100-t.community)*0.15 },
-  { name:"シモーヌ・ド・ボーヴォワール", emoji:"✒️", desc:"実存的自由と他者との関係",
+    school:["実存主義","キリスト教実存主義"],
+    concept:"実存の三段階", era:"19世紀", difficulty:4,
+    wikipedia:"https://ja.wikipedia.org/wiki/ソーレン・キェルケゴール",
+    affinity:(t) => t.loneliness*0.35 + t.idealism*0.3 + t.romanticism*0.2 + (100-t.community)*0.15,
+  },
+  {
+    name:"シモーヌ・ド・ボーヴォワール", nameEn:"Simone de Beauvoir",
+    emoji:"✒️", initials:"B",
+    desc:"実存的自由と他者との関係",
     quote:"自由とは、他者の自由なくしては存在しない。",
     keywords:["相互承認","状況","他者との共存","倫理"],
-    affinity:(t) => t.freedom*0.3 + t.emotion*0.3 + t.community*0.25 + t.idealism*0.15 },
+    school:["実存主義","フェミニズム哲学"],
+    concept:"状況と自由", era:"20世紀", difficulty:3,
+    wikipedia:"https://ja.wikipedia.org/wiki/シモーヌ・ド・ボーヴォワール",
+    affinity:(t) => t.freedom*0.3 + t.emotion*0.3 + t.community*0.25 + t.idealism*0.15,
+  },
+  // ── 追加哲学者 ──
+  {
+    name:"エミール・シオラン", nameEn:"Emil Cioran",
+    emoji:"🌑", initials:"C",
+    desc:"存在への苦い問い",
+    quote:"生まれてこなかった者は幸福だ。だが、それは百万人に一人だ。",
+    keywords:["悲観主義","断片","苦悩","虚無"],
+    school:["悲観主義","ニヒリズム"],
+    concept:"存在の苦悩", era:"20世紀", difficulty:3,
+    wikipedia:"https://ja.wikipedia.org/wiki/エミール・シオラン",
+    affinity:(t) => t.nihilism*0.45 + t.loneliness*0.3 + (100-t.idealism)*0.15 + (100-t.community)*0.1,
+  },
+  {
+    name:"マルティン・ハイデガー", nameEn:"Martin Heidegger",
+    emoji:"🌲", initials:"H",
+    desc:"存在と時間、死への存在",
+    quote:"現存在は、その存在において、この存在そのものを問題にする存在者である。",
+    keywords:["存在論","現存在","死への存在","被投性"],
+    school:["実存主義","現象学","存在論"],
+    concept:"存在と時間", era:"20世紀", difficulty:5,
+    wikipedia:"https://ja.wikipedia.org/wiki/マルティン・ハイデガー",
+    affinity:(t) => t.loneliness*0.3 + t.logic*0.25 + t.idealism*0.25 + (100-t.community)*0.2,
+  },
+  {
+    name:"ミシェル・フーコー", nameEn:"Michel Foucault",
+    emoji:"👁", initials:"F",
+    desc:"権力・知・主体",
+    quote:"権力は禁止するのではなく、産出する。",
+    keywords:["権力","系譜学","狂気","主体"],
+    school:["構造主義","ポスト構造主義","冷笑主義"],
+    concept:"権力と知", era:"20世紀", difficulty:5,
+    wikipedia:"https://ja.wikipedia.org/wiki/ミシェル・フーコー",
+    affinity:(t) => t.nihilism*0.3 + (100-t.community)*0.3 + t.logic*0.2 + (100-t.idealism)*0.2,
+  },
+  {
+    name:"アルトゥル・ショーペンハウアー", nameEn:"Arthur Schopenhauer",
+    emoji:"🕯", initials:"S",
+    desc:"盲目の意志と苦悩",
+    quote:"人生は苦しみで満ちており、その根底には盲目の意志がある。",
+    keywords:["悲観主義","意志","表象","否定"],
+    school:["悲観主義","観念論"],
+    concept:"意志と表象としての世界", era:"19世紀", difficulty:4,
+    wikipedia:"https://ja.wikipedia.org/wiki/アルトゥル・ショーペンハウアー",
+    affinity:(t) => t.nihilism*0.35 + (100-t.idealism)*0.3 + t.loneliness*0.2 + (100-t.community)*0.15,
+  },
 ];
+
+// ── resolvePhilosophers: スコアから上位N件を返す（拡張版）
+// 上位3件を返す（モックアップの3人グリッドに対応）
 
 const THOUGHT_TYPES = [
   { id:"solitary_nihilist",    name:"孤独な虚無論者",        color:"#7a8bb8",
@@ -283,8 +394,38 @@ function calcTraits(answers) {
   return norm;
 }
 function resolveType(traits)        { return THOUGHT_TYPES.find(t => t.cond(traits)) ?? THOUGHT_TYPES.at(-1); }
-function resolvePhilosophers(traits){ return [...PHILOSOPHERS].map(p=>({...p,score:p.affinity(traits)})).sort((a,b)=>b.score-a.score).slice(0,2); }
+// 上位3件（モックの3人グリッド対応）
+function resolvePhilosophers(traits){ return [...PHILOSOPHERS].map(p=>({...p,score:p.affinity(traits)})).sort((a,b)=>b.score-a.score).slice(0,3); }
 function getFallback(id)            { return FALLBACK_BY_TYPE[id] ?? FALLBACK_BY_TYPE.default; }
+
+// ── 思想ラベル計算
+// スコアから該当する「思想傾向ラベル」を最大5つ返す
+const IDEOLOGICAL_LABELS = [
+  { label:"実存主義",   cond:(t) => t.freedom>=60 && t.loneliness>=55 },
+  { label:"ニヒリズム", cond:(t) => t.nihilism>=60 },
+  { label:"不条理主義", cond:(t) => t.nihilism>=50 && t.realism>=50 },
+  { label:"ロマン主義", cond:(t) => t.romanticism>=60 },
+  { label:"構造主義",   cond:(t) => t.logic>=65 && t.community>=45 },
+  { label:"冷笑主義",   cond:(t) => t.nihilism>=55 && t.realism>=55 },
+  { label:"悲観主義",   cond:(t) => t.nihilism>=60 && t.idealism<=45 },
+  { label:"超人思想",   cond:(t) => t.freedom>=70 && t.nihilism>=50 },
+  { label:"現象学",     cond:(t) => t.logic>=60 && t.loneliness>=50 },
+  { label:"観念論",     cond:(t) => t.idealism>=65 },
+  { label:"懐疑主義",   cond:(t) => t.logic>=60 && t.nihilism>=40 },
+  { label:"共同体主義", cond:(t) => t.community>=65 },
+];
+
+function resolveLabels(traits) {
+  const matched = IDEOLOGICAL_LABELS.filter(l => l.cond(traits)).map(l => l.label);
+  // マッチが少なすぎる場合はスコアが高い軸から補完
+  if (matched.length < 2) {
+    if (traits.freedom >= 55)     matched.push("実存主義");
+    if (traits.romanticism >= 50) matched.push("ロマン主義");
+    if (traits.logic >= 55)       matched.push("懐疑主義");
+  }
+  // 重複除去して最大5件
+  return [...new Set(matched)].slice(0, 5);
+}
 
 // ── APIタイムアウト定数
 const API_TIMEOUT_MS = 18_000;
@@ -1200,6 +1341,158 @@ const GLOBAL_CSS = `
     border:1.5px solid rgba(120,190,240,0.25);
     border-top-color:rgba(120,190,240,0.9);
     animation: spin 0.75s linear infinite;
+  }
+
+  /* ══════════════════════════════════════════════
+     思想ラベル（IDEOLOGICAL LABELS）
+  ══════════════════════════════════════════════ */
+  .thought-label {
+    display: inline-flex; align-items: center;
+    padding: 5px 14px; border-radius: 999px;
+    font-family: var(--f-jp); font-size: 12px; font-weight: 300;
+    letter-spacing: 0.04em; cursor: default; position: relative;
+    background: rgba(65,85,155,0.14);
+    border: 1px solid rgba(95,125,210,0.24);
+    color: rgba(155,182,235,0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    white-space: nowrap;
+  }
+  @media (hover:hover) {
+    .thought-label:hover {
+      background: rgba(80,105,185,0.24);
+      border-color: rgba(120,155,235,0.45);
+      color: rgba(190,212,252,0.95);
+      box-shadow: 0 0 14px rgba(90,130,230,0.28), inset 0 1px 0 rgba(255,255,255,0.1);
+      transform: translateY(-1px);
+    }
+  }
+  /* アクセントカラー（2番目以降） */
+  .thought-label-alt {
+    background: rgba(90,60,175,0.14);
+    border-color: rgba(130,95,220,0.26);
+    color: rgba(185,158,248,0.88);
+  }
+  @media (hover:hover) {
+    .thought-label-alt:hover {
+      background: rgba(110,75,200,0.24);
+      border-color: rgba(155,115,240,0.45);
+      box-shadow: 0 0 14px rgba(125,85,225,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+  }
+  .thought-labels-wrap {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+
+  /* ══════════════════════════════════════════════
+     哲学者カード強化
+  ══════════════════════════════════════════════ */
+  /* イニシャルアバター */
+  .phil-avatar {
+    width: 54px; height: 54px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--f-serif); font-style: italic;
+    font-size: 24px; font-weight: 300; flex-shrink: 0;
+    position: relative; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .phil-avatar::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 55%);
+  }
+  /* 難易度 */
+  .difficulty-stars { display: inline-flex; gap: 2px; font-size: 11px; }
+  .star-on  { color: rgba(190,162,85,0.88); }
+  .star-off { color: rgba(110,115,140,0.3); }
+  /* メタ情報テーブル */
+  .phil-meta {
+    display: grid; grid-template-columns: auto 1fr;
+    gap: 5px 14px; margin: 10px 0;
+  }
+  .phil-meta-k {
+    font-family: var(--f-mono); font-size: 9px;
+    color: var(--c-dim); letter-spacing: 0.08em;
+    white-space: nowrap; align-self: center;
+  }
+  .phil-meta-v {
+    font-family: var(--f-jp); font-size: 12px;
+    font-weight: 300; color: rgba(182,198,228,0.85);
+  }
+  /* Wikipediaボタン */
+  .btn-wiki {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    width: 100%; padding: 11px 16px; margin-top: 14px;
+    background: rgba(38,58,108,0.2); border: 1px solid rgba(78,112,182,0.28);
+    border-radius: 10px; color: rgba(135,172,232,0.88);
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em;
+    cursor: pointer; text-decoration: none;
+    transition: all 0.22s ease;
+  }
+  @media (hover:hover) {
+    .btn-wiki:hover {
+      background: rgba(52,80,148,0.3); border-color: rgba(98,142,225,0.45);
+      color: rgba(168,205,252,0.92);
+      box-shadow: 0 4px 18px rgba(58,100,205,0.18);
+    }
+  }
+  .btn-wiki-sm {
+    padding: 8px 12px; font-size: 9px; margin-top: 10px;
+    background: rgba(28,44,82,0.16); border-color: rgba(68,94,162,0.22);
+    color: rgba(115,155,212,0.75);
+  }
+  /* サブ哲学者グリッド（3列） */
+  .phil-sub-grid {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 14px;
+  }
+  @media (max-width:480px) { .phil-sub-grid { grid-template-columns: 1fr; } }
+  .phil-sub-card {
+    padding: 14px 12px; text-align: center;
+    background: rgba(255,255,255,0.018); border: 1px solid rgba(255,255,255,0.055);
+    border-radius: 12px; position: relative; overflow: hidden;
+    transition: all 0.22s ease;
+  }
+  .phil-sub-card::before {
+    content:''; position:absolute; top:0; left:10%; right:10%; height:1px;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);
+  }
+  @media (hover:hover) {
+    .phil-sub-card:hover {
+      background: rgba(55,78,138,0.12); border-color: rgba(88,118,192,0.24);
+      transform: translateY(-2px); box-shadow: 0 6px 22px rgba(0,0,0,0.32);
+    }
+  }
+
+  /* ══════════════════════════════════════════════
+     アーカイブUI
+  ══════════════════════════════════════════════ */
+  .archive-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+  }
+  .archive-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(95,155,220,0.75); flex-shrink: 0;
+    animation: shimmer 2.8s ease-in-out infinite;
+  }
+  .archive-tag {
+    font-family: var(--f-mono); font-size: 8px;
+    color: rgba(78,128,192,0.65); letter-spacing: 0.26em;
+    text-transform: uppercase;
+  }
+  .archive-id {
+    font-family: var(--f-mono); font-size: 9px;
+    color: rgba(75,115,175,0.42); letter-spacing: 0.1em; margin-left: auto;
+  }
+
+  /* モバイル最適化追加 */
+  @media (max-width:480px) {
+    .thought-label { font-size: 11px; padding: 4px 11px; }
+    .phil-meta { gap: 4px 10px; }
+    .phil-meta-v { font-size: 11px; }
+    .btn-wiki { font-size: 9px; padding: 10px 14px; }
   }
 `;
 // ───────────────────────────────────────────────────────────────
@@ -2202,6 +2495,11 @@ export default function App() {
     result ? THOUGHT_TYPES.find(t => t.name === result.typeName) : null,
   [result?.typeName]);
 
+  // 思想ラベル（スコアから算出）
+  const ideologicalLabels = React.useMemo(() =>
+    result?.traits ? resolveLabels(result.traits) : [],
+  [result?.traits]);
+
   useEffect(() => {
     containerRef.current?.scrollTo({ top:0, behavior:"smooth" });
   }, [currentQId, phase]);
@@ -2806,11 +3104,12 @@ export default function App() {
             )}
 
             {/* ① タイプ名ヘッダー */}
-            <div className="result-card-stagger" style={{ textAlign:"center", marginBottom:40 }}>
-              {/* ANALYSIS COMPLETE ラベル */}
-              <div style={{ fontFamily:"var(--f-mono)", fontSize:9, color:"var(--c-dim)",
-                letterSpacing:"0.22em", marginBottom:14 }}>
-                THOUGHT TYPE · ANALYSIS COMPLETE
+            <div className="result-card-stagger" style={{ textAlign:"center", marginBottom:32 }}>
+              {/* アーカイブUIバー */}
+              <div className="archive-bar" style={{ justifyContent:"center", marginBottom:18 }}>
+                <div className="archive-dot" />
+                <span className="archive-tag">ANALYSIS COMPLETE</span>
+                <span className="archive-dot" style={{ marginLeft:4 }} />
               </div>
 
               {/* タイプID */}
@@ -2850,6 +3149,33 @@ export default function App() {
                 ))}
               </div>
             </div>
+
+            {/* 思想ラベルセクション（IDEOLOGICAL LABELS） */}
+            {ideologicalLabels.length > 0 && (
+              <div className="glass-card result-card-stagger"
+                style={{ background:"rgba(35,50,100,0.07)", border:"1px solid rgba(70,100,170,0.18)", marginBottom:16 }}>
+                {/* アーカイブヘッダー */}
+                <div className="archive-bar">
+                  <div className="archive-dot" />
+                  <span className="archive-tag">IDEOLOGICAL LABELS</span>
+                  <span className="archive-id">THOUGHT CATEGORY</span>
+                </div>
+                <p style={{ fontFamily:"var(--f-jp)", fontSize:12, color:"var(--c-muted)",
+                  marginBottom:14, fontWeight:300, letterSpacing:"0.03em" }}>
+                  思想ラベリング
+                </p>
+                <div className="thought-labels-wrap">
+                  {ideologicalLabels.map((label, i) => (
+                    <span
+                      key={label}
+                      className={`thought-label ${i % 2 === 1 ? "thought-label-alt" : ""}`}
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* ② QUOTE カード — ⑦ガラス風浮遊演出に強化 */}
             {result.quote && (
@@ -2953,52 +3279,143 @@ export default function App() {
               </div>
             </div>
 
-            {/* ⑤ 哲学者 */}
-            <Card className="result-card-stagger">
-              <SLabel>哲学者親和性</SLabel>
-              <p style={{ fontFamily:"var(--f-mono)", fontSize:9, color:"var(--c-dim)",
-                marginBottom:16, letterSpacing:"0.1em" }}>
-                思想スコアから算出した近接思想家 — 断定ではない
+            {/* ⑤ 哲学者カード（強化版）— PHILOSOPHER MATCH */}
+            <div className="glass-card result-card-stagger"
+              style={{ background:"rgba(30,45,95,0.07)", border:"1px solid rgba(65,95,165,0.18)" }}>
+
+              {/* アーカイブヘッダー */}
+              <div className="archive-bar">
+                <div className="archive-dot" />
+                <span className="archive-tag">PHILOSOPHER MATCH</span>
+                <span className="archive-id">EXISTENTIAL INDEX</span>
+              </div>
+              <p style={{ fontFamily:"var(--f-jp)", fontSize:12, color:"var(--c-muted)",
+                marginBottom:16, fontWeight:300 }}>
+                最も近い思想家
               </p>
-              {result.philosophers.map((p, i) => (
-                <div key={p.name} style={{ padding:"16px 18px", marginBottom:i<1?12:0,
-                  background: i===0 ? "rgba(65,98,160,0.09)" : "rgba(255,255,255,0.018)",
-                  border:`1px solid ${i===0 ? "rgba(88,120,192,0.2)" : "rgba(255,255,255,0.05)"}`,
-                  borderRadius:14, transition:"all 0.26s ease" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:i===0?12:0 }}>
-                    <span style={{ fontSize:22, lineHeight:1 }}>{p.emoji}</span>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontFamily:"var(--f-jp)", color:"rgba(205,215,232,0.9)",
-                        fontSize:13, marginBottom:3, fontWeight:300 }}>{p.name}</div>
-                      <div style={{ fontFamily:"var(--f-mono)", color:"var(--c-dim)", fontSize:9,
-                        letterSpacing:"0.08em" }}>{p.desc}</div>
+
+              {/* プライマリ哲学者（メインカード） */}
+              {result.philosophers[0] && (() => {
+                const p = result.philosophers[0];
+                return (
+                  <div style={{
+                    padding:"18px 18px 16px",
+                    background:"rgba(60,90,160,0.09)",
+                    border:`1px solid rgba(90,130,200,0.22)`,
+                    borderRadius:14, marginBottom:4,
+                    position:"relative", overflow:"hidden",
+                  }}>
+                    {/* 上部光沢 */}
+                    <div style={{ position:"absolute", top:0, left:"8%", right:"8%", height:1,
+                      background:`linear-gradient(90deg,transparent,${result.typeColor}33,transparent)` }} />
+
+                    {/* 名前行 */}
+                    <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:12 }}>
+                      {/* イニシャルアバター */}
+                      <div className="phil-avatar" style={{
+                        background:`linear-gradient(135deg, ${result.typeColor}28, ${result.typeColor}10)`,
+                      }}>
+                        <span style={{ color:`${result.typeColor}cc`, position:"relative", zIndex:1 }}>
+                          {p.initials}
+                        </span>
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontFamily:"var(--f-jp)", color:"rgba(210,222,242,0.95)",
+                          fontSize:"clamp(13px,3.5vw,16px)", fontWeight:300, marginBottom:3,
+                          whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                          {p.name}
+                        </div>
+                        <div style={{ fontFamily:"var(--f-mono)", color:"var(--c-dim)",
+                          fontSize:9, letterSpacing:"0.1em", marginBottom:6 }}>
+                          {p.nameEn}
+                        </div>
+                        {/* 思想系統ラベル */}
+                        {p.school?.[0] && (
+                          <span className="thought-label" style={{ fontSize:10, padding:"2px 10px" }}>
+                            {p.school[0]}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontFamily:"var(--f-mono)", fontSize:9,
+                        color:"rgba(108,152,215,0.65)", letterSpacing:"0.1em", flexShrink:0 }}>
+                        PRIMARY
+                      </span>
                     </div>
-                    {i===0 && <div style={{ fontFamily:"var(--f-mono)", fontSize:9,
-                      color:"rgba(108,152,215,0.7)", letterSpacing:"0.12em" }}>PRIMARY</div>}
+
+                    {/* メタ情報テーブル */}
+                    <div className="phil-meta">
+                      <span className="phil-meta-k">代表概念</span>
+                      <span className="phil-meta-v">{p.concept}</span>
+                      <span className="phil-meta-k">時代</span>
+                      <span className="phil-meta-v">{p.era}</span>
+                      <span className="phil-meta-k">難易度</span>
+                      <span className="difficulty-stars">
+                        {[1,2,3,4,5].map(n => (
+                          <span key={n} className={n <= p.difficulty ? "star-on" : "star-off"}>★</span>
+                        ))}
+                      </span>
+                    </div>
+
+                    {/* 名言 */}
+                    {p.quote && (
+                      <div style={{ padding:"10px 14px", marginBottom:4,
+                        background:"rgba(0,0,0,0.2)", border:"1px solid rgba(255,255,255,0.04)",
+                        borderLeft:`2px solid ${result.typeColor}33`, borderRadius:"0 8px 8px 0" }}>
+                        <p style={{ fontFamily:"var(--f-serif)", fontStyle:"italic", fontWeight:300,
+                          fontSize:12, color:"rgba(172,190,225,0.82)", lineHeight:1.85 }}>
+                          「{p.quote}」
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Wikiボタン */}
+                    <a href={p.wikipedia} target="_blank" rel="noopener noreferrer"
+                      className="btn-wiki">
+                      <span>Wikipedia で読む</span>
+                      <span style={{ fontSize:11, opacity:0.7 }}>↗</span>
+                    </a>
                   </div>
-                  {i===0 && p.quote && (
-                    <div style={{ padding:"10px 14px", marginBottom:12,
-                      background:"rgba(0,0,0,0.18)", border:"1px solid rgba(255,255,255,0.04)",
-                      borderLeft:`2px solid ${result.typeColor}30`, borderRadius:"0 8px 8px 0" }}>
-                      <p style={{ fontFamily:"var(--f-serif)", fontStyle:"italic", fontWeight:300,
-                        fontSize:12, color:"rgba(172,188,218,0.8)", lineHeight:1.85 }}>
-                        「{p.quote}」
-                      </p>
+                );
+              })()}
+
+              {/* サブ哲学者グリッド（2〜3人目） */}
+              <div className="phil-sub-grid">
+                {result.philosophers.slice(1).map((p) => (
+                  <div key={p.name} className="phil-sub-card">
+                    {/* アバター */}
+                    <div className="phil-avatar" style={{
+                      width:40, height:40, borderRadius:6,
+                      fontSize:18, margin:"0 auto 10px",
+                      background:`linear-gradient(135deg, ${result.typeColor}20, ${result.typeColor}08)`,
+                    }}>
+                      <span style={{ color:`${result.typeColor}aa`, position:"relative", zIndex:1 }}>
+                        {p.initials}
+                      </span>
                     </div>
-                  )}
-                  {i===0 && p.keywords && (
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                      {p.keywords.map(kw => (
-                        <span key={kw} style={{ padding:"2px 10px", borderRadius:999,
-                          background:"rgba(75,108,182,0.11)", border:"1px solid rgba(98,132,205,0.18)",
-                          color:"rgba(118,158,218,0.8)", fontSize:9, fontFamily:"var(--f-mono)",
-                          letterSpacing:"0.08em" }}>#{kw}</span>
-                      ))}
+                    <div style={{ fontFamily:"var(--f-jp)", color:"rgba(195,210,235,0.9)",
+                      fontSize:12, fontWeight:300, marginBottom:3,
+                      wordBreak:"break-all" }}>
+                      {p.name.replace("=","=")}
                     </div>
-                  )}
-                </div>
-              ))}
-            </Card>
+                    <div style={{ fontFamily:"var(--f-mono)", color:"var(--c-dim)",
+                      fontSize:8, letterSpacing:"0.08em", marginBottom:8 }}>
+                      {p.nameEn}
+                    </div>
+                    {/* 思想系統 */}
+                    {p.school?.[0] && (
+                      <span className="thought-label" style={{ fontSize:9, padding:"2px 9px", marginBottom:8, display:"inline-block" }}>
+                        {p.school[0]}
+                      </span>
+                    )}
+                    {/* Wikiリンク */}
+                    <a href={p.wikipedia} target="_blank" rel="noopener noreferrer"
+                      className="btn-wiki btn-wiki-sm" style={{ marginTop:8 }}>
+                      Wikipedia ↗
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* ⑥ レーダー + 座標 */}
             <div className="result-card-stagger grid-2col"
@@ -3023,25 +3440,44 @@ export default function App() {
               </Card>
             </div>
 
-            {/* ⑦ スコアバー */}
-            <div className="result-card-stagger grid-2col"
-              style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:16 }}>
-              <Card style={{ marginBottom:0 }}>
-                <SLabel>価値観スコア</SLabel>
-                <ScoreBar label="自由志向"  value={result.traits.freedom}     color="#7aaedd" delay={0}   />
-                <ScoreBar label="安定志向"  value={result.traits.stability}   color="#7ab888" delay={80}  />
-                <ScoreBar label="理想主義"  value={result.traits.idealism}    color="#8b78cc" delay={160} />
-                <ScoreBar label="現実主義"  value={result.traits.realism}     color="#a09070" delay={240} />
-                <ScoreBar label="ロマン主義" value={result.traits.romanticism} color="#b07ac8" delay={320} />
-              </Card>
-              <Card style={{ marginBottom:0 }}>
-                <SLabel>思考スコア</SLabel>
-                <ScoreBar label="論理型"    value={result.traits.logic}      color="#7aaedd" delay={40}  />
-                <ScoreBar label="感情型"    value={result.traits.emotion}    color="#e08870" delay={120} />
-                <ScoreBar label="孤独耐性"  value={result.traits.loneliness} color="#6aaa9a" delay={200} />
-                <ScoreBar label="ニヒリズム" value={result.traits.nihilism}   color="#8890a8" delay={280} />
-                <ScoreBar label="共同体志向" value={result.traits.community}  color="#88a870" delay={360} />
-              </Card>
+            {/* ⑦ スコアバー — EXISTENTIAL INDEX */}
+            <div className="result-card-stagger" style={{ marginBottom:16 }}>
+              {/* アーカイブヘッダー */}
+              <div className="glass-card" style={{
+                background:"rgba(28,42,88,0.07)", border:"1px solid rgba(62,88,158,0.18)",
+                marginBottom:0,
+              }}>
+                <div className="archive-bar">
+                  <div className="archive-dot" />
+                  <span className="archive-tag">EXISTENTIAL INDEX</span>
+                  <span className="archive-id">ARCHIVE ENTRY</span>
+                </div>
+                <p style={{ fontFamily:"var(--f-jp)", fontSize:12, color:"var(--c-muted)",
+                  marginBottom:18, fontWeight:300 }}>存在指標</p>
+
+                {/* スコアバー一覧（2列グリッド） */}
+                <div className="grid-2col" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+                  <div>
+                    <div style={{ fontFamily:"var(--f-mono)", fontSize:8, color:"var(--c-dim)",
+                      letterSpacing:"0.18em", marginBottom:12 }}>VALUE AXES</div>
+                    <ScoreBar label="自由志向"  value={result.traits.freedom}     color="#7aaedd" delay={0}   />
+                    <ScoreBar label="孤独耐性"  value={result.traits.loneliness}  color="#6aaa9a" delay={80}  />
+                    <ScoreBar label="虚無傾向"  value={result.traits.nihilism}    color="#8890a8" delay={160} />
+                    <ScoreBar label="現実主義"  value={result.traits.realism}     color="#a09070" delay={240} />
+                    <ScoreBar label="ロマン主義" value={result.traits.romanticism} color="#b07ac8" delay={320} />
+                    <ScoreBar label="反社会性"  value={Math.round((100-result.traits.community)*0.8)} color="#9878b8" delay={400} />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily:"var(--f-mono)", fontSize:8, color:"var(--c-dim)",
+                      letterSpacing:"0.18em", marginBottom:12 }}>COGNITIVE</div>
+                    <ScoreBar label="論理型"    value={result.traits.logic}      color="#7aaedd" delay={40}  />
+                    <ScoreBar label="感情型"    value={result.traits.emotion}    color="#e08870" delay={120} />
+                    <ScoreBar label="理想主義"  value={result.traits.idealism}   color="#8b78cc" delay={200} />
+                    <ScoreBar label="安定志向"  value={result.traits.stability}  color="#7ab888" delay={280} />
+                    <ScoreBar label="共同体志向" value={result.traits.community}  color="#88a870" delay={360} />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* ⑧ 回答履歴 */}
