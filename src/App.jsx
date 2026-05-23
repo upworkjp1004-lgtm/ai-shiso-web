@@ -185,17 +185,18 @@ const Q_TREE = {
 // 後方互換用フラット配列（calcTraitsはanswers[]を使うので変更不要）
 const QUESTIONS = Object.values(Q_TREE);
 
-// ── 哲学者データベース（拡張版）
+// ── 哲学者データベース（外部URL版）
+// image: Wikimedia Commons パブリックドメイン画像の直接URL
+//   失敗時は SVGシルエットにフォールバック
+// philosophy: 主な思想（英語・メタ用途）
 // wikipedia: 日本語Wikipedia URL
-// school: 思想系統ラベル（複数可）
-// concept: 代表概念
-// era: 時代
-// difficulty: 難易度 1-5
-// portrait: 実在する人物の白黒写真代替として頭文字アバター用のイニシャル
 const PHILOSOPHERS = [
   {
     name:"フリードリヒ・ニーチェ", nameEn:"Friedrich Nietzsche",
     emoji:"⚡", initials:"N",
+    // 1882年撮影 パブリックドメイン
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Nietzsche187a.jpg/220px-Nietzsche187a.jpg",
+    philosophy:"Nihilism / Existentialism",
     desc:"力への意志と永劫回帰",
     quote:"深淵を覗くとき、深淵もまたこちらを覗いている。",
     keywords:["力への意志","超人","永劫回帰","虚無克服"],
@@ -207,6 +208,9 @@ const PHILOSOPHERS = [
   {
     name:"アルベール・カミュ", nameEn:"Albert Camus",
     emoji:"🚬", initials:"C",
+    // 1957年頃 パブリックドメイン
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Albert_Camus%2C_gagnant_de_prix_Nobel%2C_portrait_en_buste%2C_pos%C3%A9_au_bureau%2C_faisant_face_%C3%A0_gauche%2C_cigarette_de_tabagisme.jpg/220px-Albert_Camus%2C_gagnant_de_prix_Nobel%2C_portrait_en_buste%2C_pos%C3%A9_au_bureau%2C_faisant_face_%C3%A0_gauche%2C_cigarette_de_tabagisme.jpg",
+    philosophy:"Absurdism",
     desc:"不条理の中の反抗",
     quote:"不条理を認識したうえで、それでも生き続けることが反抗だ。",
     keywords:["不条理","反抗","シーシュポス","地中海"],
@@ -218,6 +222,9 @@ const PHILOSOPHERS = [
   {
     name:"ジャン=ポール・サルトル", nameEn:"Jean-Paul Sartre",
     emoji:"📖", initials:"S",
+    // 1950年代 パブリックドメイン
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Jean_Paul_Sartre_1965.jpg/220px-Jean_Paul_Sartre_1965.jpg",
+    philosophy:"Existentialism",
     desc:"実存は本質に先立つ",
     quote:"人間は自由の刑に処されている。",
     keywords:["実存主義","自由と責任","他者は地獄","投企"],
@@ -229,6 +236,8 @@ const PHILOSOPHERS = [
   {
     name:"ハンナ・アーレント", nameEn:"Hannah Arendt",
     emoji:"🌍", initials:"A",
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Hannah_arendt-150x150.jpg/150px-Hannah_arendt-150x150.jpg",
+    philosophy:"Political Philosophy",
     desc:"公共性と思考の深淵",
     quote:"悪の凡庸さとは、思考の欠如から生まれる。",
     keywords:["公共性","思考","複数性","活動的生活"],
@@ -240,6 +249,8 @@ const PHILOSOPHERS = [
   {
     name:"ルートヴィヒ・ウィトゲンシュタイン", nameEn:"Ludwig Wittgenstein",
     emoji:"🔇", initials:"W",
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Ludwig_Wittgenstein_by_Ben_Richards.jpg/220px-Ludwig_Wittgenstein_by_Ben_Richards.jpg",
+    philosophy:"Analytic Philosophy",
     desc:"語りえないものについては沈黙せよ",
     quote:"語りえないことについては、沈黙しなければならない。",
     keywords:["言語ゲーム","沈黙","論理","写像理論"],
@@ -251,6 +262,8 @@ const PHILOSOPHERS = [
   {
     name:"ジャン・ボードリヤール", nameEn:"Jean Baudrillard",
     emoji:"📺", initials:"B",
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Jean_Baudrillard_%281%29.jpg/220px-Jean_Baudrillard_%281%29.jpg",
+    philosophy:"Postmodernism / Cynicism",
     desc:"シミュラクルと超現実",
     quote:"現実はすでに消え去った。我々が生きているのはそのコピーのコピーだ。",
     keywords:["シミュラクル","消費社会","ハイパーリアル","記号"],
@@ -262,6 +275,9 @@ const PHILOSOPHERS = [
   {
     name:"ソーレン・キェルケゴール", nameEn:"Søren Kierkegaard",
     emoji:"🌊", initials:"K",
+    // 1840年代肖像画 パブリックドメイン
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Kierkegaard.jpg/220px-Kierkegaard.jpg",
+    philosophy:"Existentialism",
     desc:"実存の三段階と不安",
     quote:"不安とは自由のめまいである。",
     keywords:["実存","不安","信仰の跳躍","単独者"],
@@ -273,6 +289,8 @@ const PHILOSOPHERS = [
   {
     name:"シモーヌ・ド・ボーヴォワール", nameEn:"Simone de Beauvoir",
     emoji:"✒️", initials:"B",
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Simone_de_Beauvoir2.png/220px-Simone_de_Beauvoir2.png",
+    philosophy:"Existential Feminism",
     desc:"実存的自由と他者との関係",
     quote:"自由とは、他者の自由なくしては存在しない。",
     keywords:["相互承認","状況","他者との共存","倫理"],
@@ -281,10 +299,11 @@ const PHILOSOPHERS = [
     wikipedia:"https://ja.wikipedia.org/wiki/シモーヌ・ド・ボーヴォワール",
     affinity:(t) => t.freedom*0.3 + t.emotion*0.3 + t.community*0.25 + t.idealism*0.15,
   },
-  // ── 追加哲学者 ──
   {
     name:"エミール・シオラン", nameEn:"Emil Cioran",
     emoji:"🌑", initials:"C",
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Cioran2.jpg/220px-Cioran2.jpg",
+    philosophy:"Pessimism / Nihilism",
     desc:"存在への苦い問い",
     quote:"生まれてこなかった者は幸福だ。だが、それは百万人に一人だ。",
     keywords:["悲観主義","断片","苦悩","虚無"],
@@ -296,6 +315,8 @@ const PHILOSOPHERS = [
   {
     name:"マルティン・ハイデガー", nameEn:"Martin Heidegger",
     emoji:"🌲", initials:"H",
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Martin_Heidegger_cropped.jpg/220px-Martin_Heidegger_cropped.jpg",
+    philosophy:"Phenomenology / Ontology",
     desc:"存在と時間、死への存在",
     quote:"現存在は、その存在において、この存在そのものを問題にする存在者である。",
     keywords:["存在論","現存在","死への存在","被投性"],
@@ -307,6 +328,8 @@ const PHILOSOPHERS = [
   {
     name:"ミシェル・フーコー", nameEn:"Michel Foucault",
     emoji:"👁", initials:"F",
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Foucault5.jpg/220px-Foucault5.jpg",
+    philosophy:"Post-Structuralism / Cynicism",
     desc:"権力・知・主体",
     quote:"権力は禁止するのではなく、産出する。",
     keywords:["権力","系譜学","狂気","主体"],
@@ -318,6 +341,9 @@ const PHILOSOPHERS = [
   {
     name:"アルトゥル・ショーペンハウアー", nameEn:"Arthur Schopenhauer",
     emoji:"🕯", initials:"S",
+    // 19世紀肖像画 パブリックドメイン
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Arthur_Schopenhauer_by_J_Schäfer%2C_1859b.jpg/220px-Arthur_Schopenhauer_by_J_Schäfer%2C_1859b.jpg",
+    philosophy:"Pessimism / Idealism",
     desc:"盲目の意志と苦悩",
     quote:"人生は苦しみで満ちており、その根底には盲目の意志がある。",
     keywords:["悲観主義","意志","表象","否定"],
@@ -325,6 +351,15 @@ const PHILOSOPHERS = [
     concept:"意志と表象としての世界", era:"19世紀", difficulty:4,
     wikipedia:"https://ja.wikipedia.org/wiki/アルトゥル・ショーペンハウアー",
     affinity:(t) => t.nihilism*0.35 + (100-t.idealism)*0.3 + t.loneliness*0.2 + (100-t.community)*0.15,
+  },
+];
+    desc:"力への意志と永劫回帰",
+    quote:"深淵を覗くとき、深淵もまたこちらを覗いている。",
+    keywords:["力への意志","超人","永劫回帰","虚無克服"],
+    school:["超人思想","ニヒリズム克服","実存主義前史"],
+    concept:"力への意志", era:"19世紀", difficulty:4,
+    wikipedia:"https://ja.wikipedia.org/wiki/フリードリヒ・ニーチェ",
+    affinity:(t) => t.freedom*0.35 + t.nihilism*0.25 + t.idealism*0.2 + (100-t.community)*0.2,
   },
 ];
 
@@ -1390,19 +1425,33 @@ const GLOBAL_CSS = `
      哲学者カード強化
   ══════════════════════════════════════════════ */
   /* イニシャルアバター */
+  /* ── 哲学者アバター（写真風・白黒グラデーション） ── */
   .phil-avatar {
-    width: 54px; height: 54px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--f-serif); font-style: italic;
-    font-size: 24px; font-weight: 300; flex-shrink: 0;
+    flex-shrink: 0;
     position: relative; overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    /* ダーク環境でも視認できるよう明るさ・コントラスト調整 */
+    filter: brightness(0.88) contrast(1.12);
+    transition: filter 0.24s ease, transform 0.24s ease;
   }
+  @media (hover:hover) {
+    .phil-avatar:hover {
+      filter: brightness(1.02) contrast(1.15);
+      transform: scale(1.03);
+    }
+  }
+  /* 上部グロスライン（ガラス感） */
   .phil-avatar::after {
     content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 55%);
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 40%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.09) 0%, transparent 100%);
+    pointer-events: none; z-index: 2;
   }
+  /* メインアバターサイズ */
+  .phil-avatar-main { width: 64px; height: 64px; border-radius: 10px; }
+  /* サブアバターサイズ */
+  .phil-avatar-sub  { width: 44px; height: 44px; border-radius: 8px; margin: 0 auto 10px; }
   /* 難易度 */
   .difficulty-stars { display: inline-flex; gap: 2px; font-size: 11px; }
   .star-on  { color: rgba(190,162,85,0.88); }
@@ -2043,6 +2092,257 @@ function StartOverlay({ onDone }) {
   );
 }
 
+// ───────────────────────────────────────────────────────────────
+//  PhilAvatar — 哲学者アバター
+//  ① localImage が存在すれば <img> で白黒・ダーク調整して表示
+//  ② 画像未配置／読み込みエラー時は SVG シルエットにフォールバック
+//  配置場所: public/philosophers/*.jpg
+// ───────────────────────────────────────────────────────────────
+
+const PHILOSOPHER_SEEDS = {
+  "フリードリヒ・ニーチェ":             { seed:1,  hairStyle:"full",  faceTone:0.72, beardStyle:"thick" },
+  "アルベール・カミュ":                 { seed:2,  hairStyle:"side",  faceTone:0.68, beardStyle:"none"  },
+  "ジャン=ポール・サルトル":            { seed:3,  hairStyle:"bald",  faceTone:0.65, beardStyle:"none"  },
+  "ハンナ・アーレント":                 { seed:4,  hairStyle:"wave",  faceTone:0.70, beardStyle:"none"  },
+  "ルートヴィヒ・ウィトゲンシュタイン": { seed:5,  hairStyle:"side",  faceTone:0.73, beardStyle:"none"  },
+  "ジャン・ボードリヤール":             { seed:6,  hairStyle:"full",  faceTone:0.67, beardStyle:"none"  },
+  "ソーレン・キェルケゴール":           { seed:7,  hairStyle:"curly", faceTone:0.71, beardStyle:"none"  },
+  "シモーヌ・ド・ボーヴォワール":       { seed:8,  hairStyle:"updo",  faceTone:0.69, beardStyle:"none"  },
+  "エミール・シオラン":                 { seed:9,  hairStyle:"back",  faceTone:0.66, beardStyle:"none"  },
+  "マルティン・ハイデガー":             { seed:10, hairStyle:"side",  faceTone:0.70, beardStyle:"none"  },
+  "ミシェル・フーコー":                 { seed:11, hairStyle:"bald",  faceTone:0.68, beardStyle:"none"  },
+  "アルトゥル・ショーペンハウアー":     { seed:12, hairStyle:"long",  faceTone:0.72, beardStyle:"side"  },
+};
+
+// ── SVGシルエット（フォールバック用）
+function PhilAvatarSVG({ name, initials, typeColor, size }) {
+  const cfg = PHILOSOPHER_SEEDS[name] ?? { seed: (initials?.charCodeAt(0) ?? 65), hairStyle:"side", faceTone:0.70, beardStyle:"none" };
+  const id  = `pa-${cfg.seed}-${size}`;
+  const s   = size;
+  const cx  = s / 2;
+  const shade = cfg.faceTone;
+  const bgL  = Math.round(shade * 28);
+  const faceL= Math.round(shade * 195);
+  const hairL= Math.round(shade * 45);
+  const bg   = `rgb(${bgL},${bgL},${bgL+6})`;
+  const face = `rgb(${faceL},${faceL-4},${faceL-2})`;
+  const neck = `rgb(${faceL-18},${faceL-22},${faceL-20})`;
+  const hair = `rgb(${hairL},${hairL},${hairL+3})`;
+  const headY = s * 0.18;
+  const headW = s * 0.52;
+  const headH = s * 0.50;
+  const headRx= headW / 2;
+  const headRy= headH / 2;
+  const headCx= cx;
+  const headCy= headY + headRy;
+
+  function hairPath(style) {
+    const top = headY - s*0.02;
+    const L = cx - headW*0.5, R = cx + headW*0.5;
+    switch(style) {
+      case "bald":  return `M${L} ${headCy} Q${cx} ${top} ${R} ${headCy}`;
+      case "full":  return `M${L-3} ${headCy} Q${cx} ${top-8} ${R+3} ${headCy}`;
+      case "side":  return `M${L} ${headCy} Q${cx-4} ${top-4} ${R+2} ${headCy}`;
+      case "curly": return `M${L-2} ${headCy} C${cx-12} ${top-10} ${cx+12} ${top-10} ${R+2} ${headCy}`;
+      case "wave":  return `M${L} ${headCy} Q${cx-6} ${top-6} ${cx} ${top-2} Q${cx+6} ${top+2} ${R} ${headCy}`;
+      case "updo":  return `M${L} ${headCy} Q${cx} ${top-12} ${R} ${headCy}`;
+      case "back":  return `M${L-1} ${headCy} Q${cx} ${top-5} ${R+4} ${headCy}`;
+      case "long":  return `M${L-4} ${headCy+8} Q${cx} ${top-6} ${R+4} ${headCy+8}`;
+      default:      return `M${L} ${headCy} Q${cx} ${top-4} ${R} ${headCy}`;
+    }
+  }
+
+  const rr = size >= 60 ? 10 : 8;
+  return (
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ display:"block" }} aria-hidden="true">
+      <defs>
+        <radialGradient id={`${id}-bg`} cx="50%" cy="65%" r="55%">
+          <stop offset="0%"   stopColor={`rgb(${bgL+12},${bgL+12},${bgL+14})`}/>
+          <stop offset="100%" stopColor={bg}/>
+        </radialGradient>
+        <radialGradient id={`${id}-face`} cx="42%" cy="38%" r="58%">
+          <stop offset="0%"   stopColor={`rgb(${faceL+22},${faceL+18},${faceL+16})`}/>
+          <stop offset="60%"  stopColor={face}/>
+          <stop offset="100%" stopColor={`rgb(${faceL-30},${faceL-34},${faceL-32})`}/>
+        </radialGradient>
+        <linearGradient id={`${id}-body`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={`rgb(${hairL+15},${hairL+15},${hairL+18})`}/>
+          <stop offset="100%" stopColor={`rgb(${hairL},${hairL},${hairL+3})`}/>
+        </linearGradient>
+        <filter id={`${id}-noise`} x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="3" seed={cfg.seed} stitchTiles="stitch" result="noise"/>
+          <feColorMatrix type="saturate" values="0" in="noise" result="gray"/>
+          <feBlend in="SourceGraphic" in2="gray" mode="multiply" result="blend"/>
+          <feComposite in="blend" in2="SourceGraphic" operator="in"/>
+        </filter>
+        <clipPath id={`${id}-clip`}><rect width={s} height={s} rx={rr}/></clipPath>
+      </defs>
+      <g clipPath={`url(#${id}-clip)`}>
+        <rect width={s} height={s} fill={`url(#${id}-bg)`}/>
+        <ellipse cx={cx} cy={s*1.12} rx={s*0.44} ry={s*0.35} fill={`url(#${id}-body)`}/>
+        <rect x={cx-s*0.1} y={headCy+headRy*0.82} width={s*0.2} height={s*0.16} fill={neck} rx={s*0.03}/>
+        <ellipse cx={headCx} cy={headCy} rx={headW*0.54} ry={headH*0.55} fill={hair}/>
+        <ellipse cx={headCx} cy={headCy} rx={headRx} ry={headRy} fill={`url(#${id}-face)`}/>
+        <path d={hairPath(cfg.hairStyle)} fill={hair} opacity="0.95"/>
+        <ellipse cx={cx-s*0.10} cy={headCy-headRy*0.08} rx={s*0.035} ry={s*0.022} fill={`rgb(${bgL+8},${bgL+8},${bgL+10})`}/>
+        <ellipse cx={cx+s*0.10} cy={headCy-headRy*0.08} rx={s*0.035} ry={s*0.022} fill={`rgb(${bgL+8},${bgL+8},${bgL+10})`}/>
+        <circle  cx={cx-s*0.095} cy={headCy-headRy*0.10} r={s*0.008} fill="rgba(255,255,255,0.55)"/>
+        <circle  cx={cx+s*0.105} cy={headCy-headRy*0.10} r={s*0.008} fill="rgba(255,255,255,0.55)"/>
+        <line x1={cx} y1={headCy+headRy*0.05} x2={cx+s*0.015} y2={headCy+headRy*0.28}
+          stroke={`rgba(${bgL+5},${bgL+5},${bgL+8},0.6)`} strokeWidth={s*0.018} strokeLinecap="round"/>
+        <path d={`M${cx-s*0.085} ${headCy+headRy*0.38} Q${cx} ${headCy+headRy*0.44} ${cx+s*0.085} ${headCy+headRy*0.38}`}
+          stroke={`rgba(${bgL+20},${bgL+18},${bgL+20},0.7)`} strokeWidth={s*0.016} fill="none" strokeLinecap="round"/>
+        {cfg.beardStyle === "thick" && (
+          <ellipse cx={cx} cy={headCy+headRy*0.55} rx={headW*0.38} ry={headH*0.18} fill={hair} opacity="0.7"/>
+        )}
+        {cfg.beardStyle === "side" && (<>
+          <ellipse cx={cx-headW*0.3} cy={headCy+headRy*0.45} rx={headW*0.15} ry={headH*0.2} fill={hair} opacity="0.6"/>
+          <ellipse cx={cx+headW*0.3} cy={headCy+headRy*0.45} rx={headW*0.15} ry={headH*0.2} fill={hair} opacity="0.6"/>
+        </>)}
+        <rect width={s} height={s} fill="rgba(0,0,0,0)" filter={`url(#${id}-noise)`} opacity="0.12"/>
+        {/* ビネット */}
+        <radialGradient id={`${id}-vig`} cx="50%" cy="50%" r="60%">
+          <stop offset="50%"  stopColor="transparent"/>
+          <stop offset="100%" stopColor="rgba(0,0,0,0.52)"/>
+        </radialGradient>
+        <rect width={s} height={s} fill={`url(#${id}-vig)`}/>
+        {/* typeColor tint */}
+        <rect width={s} height={s} fill={typeColor ?? "rgba(80,100,180,0)"} opacity="0.07"/>
+        {/* グロスライン */}
+        <rect width={s} height={s*0.38} fill="linear-gradient(180deg,rgba(255,255,255,0.08),transparent)" opacity="1"/>
+      </g>
+    </svg>
+  );
+}
+
+// ── メインコンポーネント（外部URL優先・SVGフォールバック付き）
+// - image: Wikimedia Commons 外部URL
+// - onError でSVGシルエットに自動フォールバック
+// - grayscale + brightness + contrast でダークUI最適化
+// - blur placeholder（ロード中）
+// - hover時の青グロー・scale演出
+// - lazy loading対応
+function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = false }) {
+  const [imgError,   setImgError]   = React.useState(false);
+  const [imgLoaded,  setImgLoaded]  = React.useState(false);
+  const [isHovered,  setIsHovered]  = React.useState(false);
+
+  const rr = isMain ? 10 : 8;
+  const wh = `${size}px`;
+
+  // ── CSSフィルター設計
+  // grayscale(1)     : 白黒化（ダークUI統一）
+  // brightness(0.82) : 暗め（暗背景に馴染む）
+  // contrast(1.22)   : コントラスト強調（視認性）
+  // sepia(0.06)      : 微セピア（古典感・文学感）
+  // hover時は brightness(0.95) で明るく
+  const baseFilter   = "grayscale(1) brightness(0.82) contrast(1.22) sepia(0.06)";
+  const hoverFilter  = "grayscale(1) brightness(0.95) contrast(1.25) sepia(0.04)";
+
+  // blue glow — typeColorまたはデフォルト青紫
+  const glowColor = typeColor ?? "rgba(80,120,220,0.6)";
+  const hoverShadow = isMain
+    ? `0 0 16px ${glowColor}, 0 0 32px ${glowColor.replace(/[\d.]+\)$/, "0.3)")}, 0 4px 20px rgba(0,0,0,0.5)`
+    : `0 0 10px ${glowColor}, 0 2px 12px rgba(0,0,0,0.4)`;
+
+  const showImg = image && !imgError;
+
+  return (
+    <div
+      className="phil-avatar"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        width: wh, height: wh, borderRadius: rr,
+        overflow: "hidden", flexShrink: 0,
+        position: "relative",
+        border: isHovered
+          ? `1px solid ${glowColor.replace(/[\d.]+\)$/, "0.45)")}`
+          : "1px solid rgba(255,255,255,0.1)",
+        background: "#0b0d15",
+        transition: "border-color 0.28s ease, box-shadow 0.28s ease, transform 0.28s cubic-bezier(0.4,0,0.2,1)",
+        boxShadow: isHovered ? hoverShadow : "none",
+        transform: isHovered ? "scale(1.04)" : "scale(1)",
+        cursor: "default",
+      }}
+    >
+      {/* blur placeholder（画像ロード中） */}
+      {showImg && !imgLoaded && (
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(135deg, #111420 0%, #0d1028 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 1,
+        }}>
+          <div style={{
+            width: size * 0.3, height: size * 0.3, borderRadius: "50%",
+            border: `1.5px solid ${glowColor.replace(/[\d.]+\)$/, "0.3)")}`,
+            borderTopColor: glowColor,
+            animation: "spin 1s linear infinite",
+          }}/>
+        </div>
+      )}
+
+      {showImg ? (
+        <>
+          {/* 外部URL画像（Wikimedia Commons等） */}
+          <img
+            src={image}
+            alt={name}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
+            style={{
+              width: "100%", height: "100%",
+              objectFit: "cover",
+              objectPosition: "center top",
+              display: "block",
+              // ダーク最適化フィルター
+              filter: isHovered ? hoverFilter : baseFilter,
+              transition: "filter 0.3s ease, transform 0.3s ease",
+              transform: isHovered ? "scale(1.06)" : "scale(1)",
+              // ロード前は透明にしてblurプレースホルダーを見せる
+              opacity: imgLoaded ? 1 : 0,
+            }}
+          />
+
+          {/* ビネット + グロスライン（常時表示） */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2,
+            background: `
+              radial-gradient(ellipse at 50% 60%, transparent 35%, rgba(0,0,0,0.52) 100%),
+              linear-gradient(180deg, rgba(255,255,255,0.055) 0%, transparent 28%)
+            `,
+          }}/>
+
+          {/* hover時 blue glow オーバーレイ */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none", zIndex: 3,
+            background: `radial-gradient(ellipse at 50% 50%, ${glowColor.replace(/[\d.]+\)$/, "0.12)")} 0%, transparent 70%)`,
+            opacity: isHovered ? 1 : 0,
+            transition: "opacity 0.28s ease",
+          }}/>
+
+          {/* typeColor tint（常時・超微量） */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2,
+            background: typeColor ?? "transparent",
+            opacity: 0.06,
+          }}/>
+        </>
+      ) : (
+        /* SVGシルエット（フォールバック） */
+        <PhilAvatarSVG
+          name={name}
+          initials={initials}
+          typeColor={typeColor}
+          size={size}
+        />
+      )}
+    </div>
+  );
+}
 // スコアバー（アニメーション付き）
 function ScoreBar({ label, value, color, delay=0 }) {
   const [width, setWidth] = useState(0);
@@ -3311,14 +3611,15 @@ export default function App() {
 
                     {/* 名前行 */}
                     <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:12 }}>
-                      {/* イニシャルアバター */}
-                      <div className="phil-avatar" style={{
-                        background:`linear-gradient(135deg, ${result.typeColor}28, ${result.typeColor}10)`,
-                      }}>
-                        <span style={{ color:`${result.typeColor}cc`, position:"relative", zIndex:1 }}>
-                          {p.initials}
-                        </span>
-                      </div>
+                      {/* 外部URL画像 or SVGフォールバック */}
+                      <PhilAvatar
+                        name={p.name}
+                        initials={p.initials}
+                        typeColor={result.typeColor}
+                        image={p.image}
+                        size={64}
+                        isMain={true}
+                      />
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontFamily:"var(--f-jp)", color:"rgba(210,222,242,0.95)",
                           fontSize:"clamp(13px,3.5vw,16px)", fontWeight:300, marginBottom:3,
@@ -3382,16 +3683,14 @@ export default function App() {
               <div className="phil-sub-grid">
                 {result.philosophers.slice(1).map((p) => (
                   <div key={p.name} className="phil-sub-card">
-                    {/* アバター */}
-                    <div className="phil-avatar" style={{
-                      width:40, height:40, borderRadius:6,
-                      fontSize:18, margin:"0 auto 10px",
-                      background:`linear-gradient(135deg, ${result.typeColor}20, ${result.typeColor}08)`,
-                    }}>
-                      <span style={{ color:`${result.typeColor}aa`, position:"relative", zIndex:1 }}>
-                        {p.initials}
-                      </span>
-                    </div>
+                    {/* 外部URL画像 or SVGフォールバック */}
+                    <PhilAvatar
+                      name={p.name}
+                      initials={p.initials}
+                      typeColor={result.typeColor}
+                      image={p.image}
+                      size={44}
+                    />
                     <div style={{ fontFamily:"var(--f-jp)", color:"rgba(195,210,235,0.9)",
                       fontSize:12, fontWeight:300, marginBottom:3,
                       wordBreak:"break-all" }}>
