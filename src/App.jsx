@@ -353,15 +353,6 @@ const PHILOSOPHERS = [
     affinity:(t) => t.nihilism*0.35 + (100-t.idealism)*0.3 + t.loneliness*0.2 + (100-t.community)*0.15,
   },
 ];
-    desc:"力への意志と永劫回帰",
-    quote:"深淵を覗くとき、深淵もまたこちらを覗いている。",
-    keywords:["力への意志","超人","永劫回帰","虚無克服"],
-    school:["超人思想","ニヒリズム克服","実存主義前史"],
-    concept:"力への意志", era:"19世紀", difficulty:4,
-    wikipedia:"https://ja.wikipedia.org/wiki/フリードリヒ・ニーチェ",
-    affinity:(t) => t.freedom*0.35 + t.nihilism*0.25 + t.idealism*0.2 + (100-t.community)*0.2,
-  },
-];
 
 // ── resolvePhilosophers: スコアから上位N件を返す（拡張版）
 // 上位3件を返す（モックアップの3人グリッドに対応）
@@ -2230,20 +2221,27 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
   const rr = isMain ? 10 : 8;
   const wh = `${size}px`;
 
-  // ── CSSフィルター設計
-  // grayscale(1)     : 白黒化（ダークUI統一）
-  // brightness(0.82) : 暗め（暗背景に馴染む）
-  // contrast(1.22)   : コントラスト強調（視認性）
-  // sepia(0.06)      : 微セピア（古典感・文学感）
-  // hover時は brightness(0.95) で明るく
-  const baseFilter   = "grayscale(1) brightness(0.82) contrast(1.22) sepia(0.06)";
-  const hoverFilter  = "grayscale(1) brightness(0.95) contrast(1.25) sepia(0.04)";
+  // ── CSSフィルター
+  // grayscale(1): 白黒化, brightness(0.82): 暗め, contrast(1.22): 強調, sepia(0.06): 微セピア
+  const baseFilter  = "grayscale(1) brightness(0.82) contrast(1.22) sepia(0.06)";
+  const hoverFilter = "grayscale(1) brightness(0.95) contrast(1.25) sepia(0.04)";
 
-  // blue glow — typeColorまたはデフォルト青紫
-  const glowColor = typeColor ?? "rgba(80,120,220,0.6)";
+  // blue glow — typeColorから不透明度だけ変えた色を安全に生成
+  // 正規表現を避け、文字列操作でopacityを差し替える
+  const baseGlow = typeColor ?? "rgba(80,120,220,0.6)";
+  // rgba(r,g,b,X) → rgba(r,g,b,newAlpha) に差し替えるヘルパー
+  const withAlpha = (col, alpha) => {
+    const last = col.lastIndexOf(",");
+    return last > 0 ? col.slice(0, last + 1) + alpha + ")" : col;
+  };
+  const glowLow    = withAlpha(baseGlow, "0.12");  // hover glow overlay
+  const glowBorder = withAlpha(baseGlow, "0.45");  // hover border
+  const glowSpin   = withAlpha(baseGlow, "0.30");  // spinner border
+  const glowFaint  = withAlpha(baseGlow, "0.18");  // shadow soft
+
   const hoverShadow = isMain
-    ? `0 0 16px ${glowColor}, 0 0 32px ${glowColor.replace(/[\d.]+\)$/, "0.3)")}, 0 4px 20px rgba(0,0,0,0.5)`
-    : `0 0 10px ${glowColor}, 0 2px 12px rgba(0,0,0,0.4)`;
+    ? `0 0 16px ${baseGlow}, 0 0 32px ${glowFaint}, 0 4px 20px rgba(0,0,0,0.5)`
+    : `0 0 10px ${baseGlow}, 0 2px 12px rgba(0,0,0,0.4)`;
 
   const showImg = image && !imgError;
 
@@ -2257,7 +2255,7 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
         overflow: "hidden", flexShrink: 0,
         position: "relative",
         border: isHovered
-          ? `1px solid ${glowColor.replace(/[\d.]+\)$/, "0.45)")}`
+          ? `1px solid ${glowBorder}`
           : "1px solid rgba(255,255,255,0.1)",
         background: "#0b0d15",
         transition: "border-color 0.28s ease, box-shadow 0.28s ease, transform 0.28s cubic-bezier(0.4,0,0.2,1)",
@@ -2266,7 +2264,7 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
         cursor: "default",
       }}
     >
-      {/* blur placeholder（画像ロード中） */}
+      {/* ローディングスピナー（画像ロード中のみ表示） */}
       {showImg && !imgLoaded && (
         <div style={{
           position: "absolute", inset: 0,
@@ -2276,8 +2274,8 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
         }}>
           <div style={{
             width: size * 0.3, height: size * 0.3, borderRadius: "50%",
-            border: `1.5px solid ${glowColor.replace(/[\d.]+\)$/, "0.3)")}`,
-            borderTopColor: glowColor,
+            border: `1.5px solid ${glowSpin}`,
+            borderTopColor: baseGlow,
             animation: "spin 1s linear infinite",
           }}/>
         </div>
@@ -2285,7 +2283,7 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
 
       {showImg ? (
         <>
-          {/* 外部URL画像（Wikimedia Commons等） */}
+          {/* 外部URL画像（Wikimedia Commons等・lazy loading） */}
           <img
             src={image}
             alt={name}
@@ -2298,33 +2296,31 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
               objectFit: "cover",
               objectPosition: "center top",
               display: "block",
-              // ダーク最適化フィルター
               filter: isHovered ? hoverFilter : baseFilter,
               transition: "filter 0.3s ease, transform 0.3s ease",
               transform: isHovered ? "scale(1.06)" : "scale(1)",
-              // ロード前は透明にしてblurプレースホルダーを見せる
               opacity: imgLoaded ? 1 : 0,
             }}
           />
 
-          {/* ビネット + グロスライン（常時表示） */}
+          {/* ビネット＋グロスライン（常時） */}
           <div style={{
             position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2,
-            background: `
-              radial-gradient(ellipse at 50% 60%, transparent 35%, rgba(0,0,0,0.52) 100%),
-              linear-gradient(180deg, rgba(255,255,255,0.055) 0%, transparent 28%)
-            `,
+            background: [
+              "radial-gradient(ellipse at 50% 60%, transparent 35%, rgba(0,0,0,0.52) 100%)",
+              "linear-gradient(180deg, rgba(255,255,255,0.055) 0%, transparent 28%)",
+            ].join(","),
           }}/>
 
           {/* hover時 blue glow オーバーレイ */}
           <div style={{
             position: "absolute", inset: 0, pointerEvents: "none", zIndex: 3,
-            background: `radial-gradient(ellipse at 50% 50%, ${glowColor.replace(/[\d.]+\)$/, "0.12)")} 0%, transparent 70%)`,
+            background: `radial-gradient(ellipse at 50% 50%, ${glowLow} 0%, transparent 70%)`,
             opacity: isHovered ? 1 : 0,
             transition: "opacity 0.28s ease",
           }}/>
 
-          {/* typeColor tint（常時・超微量） */}
+          {/* typeColor tint（超微量・常時） */}
           <div style={{
             position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2,
             background: typeColor ?? "transparent",
