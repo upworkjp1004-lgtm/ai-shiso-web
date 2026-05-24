@@ -185,6 +185,182 @@ const Q_TREE = {
 // 後方互換用フラット配列（calcTraitsはanswers[]を使うので変更不要）
 const QUESTIONS = Object.values(Q_TREE);
 
+// ══════════════════════════════════════════════════════════════
+//  QUICK MODE 質問セット（5問・二択・30秒〜2分）
+// ══════════════════════════════════════════════════════════════
+const QUICK_QUESTIONS = [
+  { id:"q1", text:"あなたにとって、自由とは？",
+    options:[
+      { label:"何ものにも縛られないこと",  scores:{ freedom:+5, stability:-2 } },
+      { label:"安心できる場所があること",  scores:{ stability:+5, freedom:-2 } },
+    ] },
+  { id:"q2", text:"一人でいるとき、あなたは？",
+    options:[
+      { label:"静かで、心地いい",          scores:{ loneliness:+4, community:-2 } },
+      { label:"少し寂しい、もの足りない",   scores:{ community:+4, loneliness:-2 } },
+    ] },
+  { id:"q3", text:"「意味」について、どちらが近い？",
+    options:[
+      { label:"意味は自分で作るしかない",   scores:{ idealism:+3, nihilism:+2 } },
+      { label:"意味なんてないかもしれない", scores:{ nihilism:+5, idealism:-1 } },
+    ] },
+  { id:"q4", text:"感情と論理、どちらを信じる？",
+    options:[
+      { label:"感情の方が正直だと思う",     scores:{ emotion:+5, logic:-2 } },
+      { label:"論理の方が信頼できる",       scores:{ logic:+5, emotion:-2 } },
+    ] },
+  { id:"q5", text:"深夜、ひとりでいるとき",
+    options:[
+      { label:"考えすぎて眠れなくなる",     scores:{ loneliness:+3, nihilism:+2, idealism:+1 } },
+      { label:"誰かと話したくなる",         scores:{ community:+4, emotion:+2 } },
+    ] },
+];
+
+// ══════════════════════════════════════════════════════════════
+//  DEEP MODE 質問ステージ（5テーマ×2〜3問＝計12問＋AI追質問）
+// ══════════════════════════════════════════════════════════════
+const DEEP_STAGES = [
+  { stageId:"s1", theme:"存在の出発点", themeEn:"ORIGIN OF EXISTENCE",
+    intro:"まず、あなたが「存在している」という感覚から始めましょう。",
+    questions:[
+      { id:"d1_1", text:"あなたが「生きている」と最も強く感じる瞬間はいつですか？",
+        options:[
+          { label:"誰かと深く笑ったとき",           scores:{ community:+4, emotion:+3 } },
+          { label:"一人で何かに没頭しているとき",    scores:{ loneliness:+3, logic:+2, freedom:+2 } },
+          { label:"美しいものに出会ったとき",        scores:{ romanticism:+5, emotion:+2 } },
+          { label:"正直言って、よくわからない",      scores:{ nihilism:+3, idealism:-1 } },
+        ] },
+      { id:"d1_2", text:"「自分らしい」という感覚は、あなたにとって実在しますか？",
+        options:[
+          { label:"はっきりと存在する",              scores:{ idealism:+4, freedom:+2 } },
+          { label:"曖昧だが、何かある",              scores:{ romanticism:+3, emotion:+2 } },
+          { label:"「自分らしさ」という概念自体を疑う", scores:{ nihilism:+3, logic:+3 } },
+          { label:"環境によって変わるものだと思う",  scores:{ realism:+4, community:+1 } },
+        ] },
+    ] },
+  { stageId:"s2", theme:"孤独と他者", themeEn:"SOLITUDE AND OTHERS",
+    intro:"あなたと、他者との距離について。",
+    questions:[
+      { id:"d2_1", text:"深く理解し合える人間は、存在すると思いますか？",
+        options:[
+          { label:"いる、あるいはいた",              scores:{ community:+4, emotion:+3, loneliness:-2 } },
+          { label:"いるかもしれないが、まだ会っていない", scores:{ romanticism:+3, loneliness:+2 } },
+          { label:"完全には無理だと思う",            scores:{ loneliness:+4, nihilism:+2 } },
+          { label:"そもそも必要とは思わない",        scores:{ freedom:+3, loneliness:+3, community:-3 } },
+        ] },
+      { id:"d2_2", text:"人といるとき、どこか「演じている」と感じますか？",
+        options:[
+          { label:"いつもではないが、感じることがある", scores:{ loneliness:+2, logic:+2 } },
+          { label:"かなり頻繁に感じる",              scores:{ loneliness:+4, nihilism:+2, community:-3 } },
+          { label:"あまり感じない、自然でいられる",  scores:{ community:+3, emotion:+2 } },
+          { label:"「本当の自分」という概念に違和感がある", scores:{ nihilism:+3, logic:+3 } },
+        ] },
+      { id:"d2_3", text:"誰かと一緒にいても「孤独」を感じることがありますか？",
+        options:[
+          { label:"よくある",                        scores:{ loneliness:+5, community:-2 } },
+          { label:"たまにある",                      scores:{ loneliness:+2, idealism:+1 } },
+          { label:"あまりない",                      scores:{ community:+3 } },
+          { label:"一人でいるときの方が孤独を感じない", scores:{ freedom:+3, loneliness:+3 } },
+        ] },
+    ] },
+  { stageId:"s3", theme:"意味と虚無", themeEn:"MEANING AND VOID",
+    intro:"存在に意味はあるのか。あなたはどこに立っていますか？",
+    questions:[
+      { id:"d3_1", text:"「なんのために生きているのか」という問いを、どう扱いますか？",
+        options:[
+          { label:"真剣に考え続けている",            scores:{ idealism:+3, loneliness:+2 } },
+          { label:"答えはないと思いながら、考える",   scores:{ nihilism:+3, realism:+2 } },
+          { label:"考えないようにしている",           scores:{ stability:+3, realism:+2 } },
+          { label:"そういう問い自体が不毛だと思う",   scores:{ nihilism:+4, logic:+2 } },
+        ] },
+      { id:"d3_2", text:"「意味がない」という感覚は、あなたを軽くしますか、重くしますか？",
+        options:[
+          { label:"軽くする。解放される感じがある",   scores:{ nihilism:+4, freedom:+3 } },
+          { label:"重くする。怖くなることがある",     scores:{ nihilism:+3, loneliness:+3 } },
+          { label:"どちらでもある、状況による",       scores:{ realism:+3, nihilism:+2 } },
+          { label:"あまりそういう感覚を持ったことがない", scores:{ stability:+4 } },
+        ] },
+      { id:"d3_3", text:"あなたにとって「死」は、日常的に意識するものですか？",
+        options:[
+          { label:"はい、よく考える",                scores:{ nihilism:+3, loneliness:+2, idealism:+1 } },
+          { label:"たまに意識する",                  scores:{ romanticism:+2, realism:+1 } },
+          { label:"なるべく考えないようにしている",   scores:{ stability:+3 } },
+          { label:"死を考えると、今が鮮明になる",    scores:{ freedom:+3, nihilism:+2, idealism:+2 } },
+        ] },
+    ] },
+  { stageId:"s4", theme:"自由と制約", themeEn:"FREEDOM AND CONSTRAINT",
+    intro:"あなたにとっての「自由」とは何か。",
+    questions:[
+      { id:"d4_1", text:"「自由でいたい」という欲望と、「所属したい」という欲望、どちらが強いですか？",
+        options:[
+          { label:"圧倒的に自由でいたい",            scores:{ freedom:+5, stability:-3, community:-2 } },
+          { label:"どちらかというと自由が好き",       scores:{ freedom:+3, stability:-1 } },
+          { label:"どちらかというと所属したい",       scores:{ community:+3, stability:+2 } },
+          { label:"その矛盾の中で生きている",         scores:{ idealism:+3, romanticism:+2, loneliness:+2 } },
+        ] },
+      { id:"d4_2", text:"「選択肢が多すぎること」は、あなたにとって苦しいですか？",
+        options:[
+          { label:"はい、選ぶことが怖くなることがある", scores:{ loneliness:+2, nihilism:+2, freedom:+1 } },
+          { label:"選択肢が多い方が安心する",         scores:{ freedom:+4, idealism:+2 } },
+          { label:"どちらでもない",                  scores:{ realism:+3 } },
+          { label:"選べないことの方が苦しい",         scores:{ freedom:+3, stability:-2 } },
+        ] },
+    ] },
+  { stageId:"s5", theme:"思想の輪郭", themeEn:"CONTOURS OF THOUGHT",
+    intro:"最後に。あなた自身の「思想の輪郭」に触れましょう。",
+    questions:[
+      { id:"d5_1", text:"「世界は変えられる」という信念を、今も持ち続けていますか？",
+        options:[
+          { label:"はい、強く信じている",            scores:{ idealism:+5, nihilism:-2 } },
+          { label:"信じたいが、揺れている",           scores:{ idealism:+3, nihilism:+2, romanticism:+1 } },
+          { label:"あまり信じていない",              scores:{ nihilism:+3, realism:+3 } },
+          { label:"世界より、自分を変えることを考える", scores:{ freedom:+3, realism:+2, idealism:+1 } },
+        ] },
+      { id:"d5_2", text:"「言葉にできない感情」は、存在すると思いますか？",
+        options:[
+          { label:"存在する、そしてそれこそが本質だと思う", scores:{ romanticism:+4, emotion:+3 } },
+          { label:"存在するが、言葉にしたいと思う",   scores:{ idealism:+3, emotion:+2 } },
+          { label:"言葉にできないものに意味はない",   scores:{ logic:+5, nihilism:+1 } },
+          { label:"言葉にしないことで守られるものがある", scores:{ loneliness:+3, romanticism:+3 } },
+        ] },
+      { id:"d5_3", text:"この問いを終えて、あなたは自分についてどう感じていますか？",
+        options:[
+          { label:"少し、自分が見えた気がする",       scores:{ idealism:+2, romanticism:+1 } },
+          { label:"変わらない。答えは出ない",         scores:{ nihilism:+3, realism:+2 } },
+          { label:"言語化することの限界を感じた",     scores:{ loneliness:+2, logic:+2 } },
+          { label:"考えること自体が、少し怖かった",   scores:{ loneliness:+3, nihilism:+2 } },
+        ] },
+    ] },
+];
+
+const DEEP_QUESTIONS_FLAT = DEEP_STAGES.flatMap(s => s.questions);
+
+// DEEP MODE: AIが追質問（観察の一文）を生成
+async function generateDeepFollowUp(question, answer, traits) {
+  const traitSummary = Object.entries(traits).map(([k,v])=>`${k}:${v}`).join(", ");
+  const body = JSON.stringify({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 80,
+    temperature: 1,
+    system: `あなたは思想標本を生成する文学的AIです。
+回答者の選択から、その人の思想的傾向を「観察」する短い一文を書いてください。
+禁止：断定・評価・励まし・AIっぽい相槌
+必要：哲学的冷静さ・断片的・刺さる観察
+出力：30字以内の日本語一文のみ。余分なテキスト不要。`,
+    messages: [{ role:"user", content:`質問：${question}\n回答：${answer}\nスコア：${traitSummary}\n\n観察の一文を生成してください。` }],
+  });
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.anthropic.com/v1/messages",
+      { method:"POST", headers:{"Content-Type":"application/json"}, body },
+      8000
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.content?.find(c=>c.type==="text")?.text?.trim() ?? null;
+  } catch { return null; }
+}
+
 // ── 哲学者データベース（外部URL版）
 // image: Wikimedia Commons パブリックドメイン画像の直接URL
 //   /wikipedia/commons/thumb/[hash]/[filename]/[size]-[filename] 形式
@@ -1217,7 +1393,200 @@ const GLOBAL_CSS = `
     animation: spin 0.75s linear infinite;
   }
 
-  /* ── モバイル最適化（iPhone Safari前提） ── */
+  /* ══════════════════════════════════════════════
+     モード選択画面
+  ══════════════════════════════════════════════ */
+
+  /* モード選択カード */
+  @keyframes modeCardIn {
+    from { opacity:0; transform:translateY(18px) scale(0.97); }
+    to   { opacity:1; transform:translateY(0)    scale(1); }
+  }
+  .mode-card {
+    position: relative; cursor: pointer;
+    border-radius: 20px; padding: 28px 24px;
+    overflow: hidden;
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1),
+                border-color 0.28s ease,
+                box-shadow 0.28s ease;
+    text-align: left;
+  }
+  .mode-card::before {
+    content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+  }
+  @media (hover:hover) {
+    .mode-card:hover { transform: translateY(-4px); }
+  }
+  .mode-card:active { transform: scale(0.98); }
+  /* QUICK */
+  .mode-card-quick {
+    background: rgba(35,55,110,0.18);
+    border: 1px solid rgba(80,120,210,0.28);
+    animation: modeCardIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both;
+  }
+  @media (hover:hover) {
+    .mode-card-quick:hover {
+      border-color: rgba(100,150,240,0.5);
+      box-shadow: 0 12px 40px rgba(60,100,220,0.18), 0 0 0 1px rgba(100,150,240,0.1);
+    }
+  }
+  /* DEEP */
+  .mode-card-deep {
+    background: rgba(55,35,110,0.18);
+    border: 1px solid rgba(120,80,200,0.28);
+    animation: modeCardIn 0.5s cubic-bezier(0.16,1,0.3,1) 0.22s both;
+  }
+  @media (hover:hover) {
+    .mode-card-deep:hover {
+      border-color: rgba(150,100,240,0.5);
+      box-shadow: 0 12px 40px rgba(100,60,220,0.18), 0 0 0 1px rgba(150,100,240,0.1);
+    }
+  }
+
+  /* ══════════════════════════════════════════════
+     QUICK MODE UI
+  ══════════════════════════════════════════════ */
+  @keyframes quickOptIn {
+    from { opacity:0; transform:translateX(12px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
+  /* 二択ボタン */
+  .quick-opt {
+    display: block; width:100%; text-align:center;
+    padding: 18px 20px; border-radius: 16px; cursor: pointer;
+    font-family: var(--f-jp); font-size: 15px; font-weight:300;
+    letter-spacing: 0.03em; line-height:1.5;
+    transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+    position:relative; overflow:hidden;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.09);
+    color: rgba(200,212,238,0.88);
+    animation: quickOptIn 0.36s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .quick-opt:nth-child(2) { animation-delay: 0.06s; }
+  .quick-opt::before {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(135deg,rgba(80,120,200,0.07) 0%,transparent 60%);
+    opacity:0; transition:opacity 0.2s ease;
+  }
+  @media (hover:hover) {
+    .quick-opt:hover {
+      border-color: rgba(120,160,240,0.35);
+      color: rgba(220,232,252,0.96);
+      transform: translateY(-2px);
+    }
+    .quick-opt:hover::before { opacity:1; }
+  }
+  .quick-opt.selected {
+    background: rgba(65,100,185,0.22);
+    border-color: rgba(110,155,240,0.5);
+    color: rgba(200,220,255,0.96);
+    box-shadow: 0 0 0 1px rgba(110,155,240,0.1), inset 0 0 20px rgba(70,110,200,0.1);
+  }
+  .quick-opt.selected::before { opacity:1; }
+  /* プログレスドット */
+  .quick-progress-dots {
+    display:flex; gap:6px; justify-content:center; margin-bottom:36px;
+  }
+  .quick-dot {
+    width:6px; height:6px; border-radius:50%;
+    background:rgba(255,255,255,0.12);
+    transition:all 0.3s ease;
+  }
+  .quick-dot.active { background:rgba(110,155,240,0.9); width:18px; border-radius:3px; }
+  .quick-dot.done   { background:rgba(90,130,210,0.5); }
+
+  /* ══════════════════════════════════════════════
+     DEEP MODE UI
+  ══════════════════════════════════════════════ */
+  @keyframes deepStageIn {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes deepObsIn {
+    from { opacity:0; transform:translateX(-8px); }
+    to   { opacity:0.85; transform:translateX(0); }
+  }
+  @keyframes deepAmbient {
+    0%,100%{ opacity:0.3; }
+    50%    { opacity:0.6; }
+  }
+  /* DEEP質問テキスト */
+  .deep-question-text {
+    font-family: var(--f-serif); font-style:italic; font-weight:300;
+    font-size: clamp(18px,4.5vw,26px);
+    line-height: 1.7; letter-spacing:0.02em;
+    color: rgba(220,228,248,0.96);
+    animation: deepStageIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both;
+  }
+  /* DEEP AIの観察テキスト */
+  .deep-observation {
+    font-family: var(--f-mono); font-size:11px;
+    color: rgba(110,140,200,0.85);
+    letter-spacing:0.06em; line-height:1.9;
+    animation: deepObsIn 0.7s ease 0.2s both;
+    border-left:2px solid rgba(80,110,180,0.35);
+    padding-left:12px;
+    margin-top:16px;
+  }
+  /* ステージ表示バー */
+  .deep-stage-bar {
+    display:flex; gap:4px; margin-bottom:32px;
+  }
+  .deep-stage-seg {
+    flex:1; height:2px; border-radius:2px;
+    background:rgba(255,255,255,0.07);
+    transition:all 0.5s ease;
+  }
+  .deep-stage-seg.active {
+    background:linear-gradient(90deg,rgba(100,80,200,0.8),rgba(140,100,230,0.8));
+    box-shadow:0 0 8px rgba(120,80,220,0.4);
+  }
+  .deep-stage-seg.done { background:rgba(80,60,160,0.5); }
+  /* DEEP選択肢 */
+  .deep-opt {
+    display:block; width:100%; text-align:left;
+    padding:15px 18px; border-radius:14px; cursor:pointer;
+    font-family:var(--f-jp); font-size:13px; font-weight:300;
+    letter-spacing:0.025em; line-height:1.65;
+    transition:all 0.24s cubic-bezier(0.4,0,0.2,1);
+    background:rgba(255,255,255,0.02);
+    border:1px solid rgba(255,255,255,0.06);
+    color:rgba(185,198,228,0.82);
+    margin-bottom:9px;
+    position:relative; overflow:hidden;
+  }
+  .deep-opt::after {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:2px;
+    background:rgba(120,90,220,0);
+    transition:background 0.24s ease;
+  }
+  @media (hover:hover) {
+    .deep-opt:hover {
+      border-color:rgba(110,85,200,0.3);
+      color:rgba(205,215,240,0.92);
+      background:rgba(80,60,150,0.1);
+    }
+    .deep-opt:hover::after { background:rgba(120,90,220,0.6); }
+  }
+  .deep-opt.selected {
+    background:rgba(75,55,145,0.2);
+    border-color:rgba(130,95,225,0.45);
+    color:rgba(210,195,250,0.95);
+  }
+  .deep-opt.selected::after { background:rgba(140,100,240,0.8); }
+  /* 思考ログパネル */
+  .thought-log-entry {
+    padding:12px 14px; border-radius:10px; margin-bottom:8px;
+    background:rgba(255,255,255,0.015);
+    border:1px solid rgba(255,255,255,0.045);
+    animation:fadeUp 0.5s ease both;
+  }
+
+  /* ══════════════════════════════════════════════
+     モバイル最適化（iPhone Safari前提）
+  ══════════════════════════════════════════════ */
   @media (max-width:480px) {
     .grid-2col { grid-template-columns:1fr !important; }
     .hide-mobile { display:none !important; }
@@ -2414,8 +2783,365 @@ function ThoughtMap({ traits }) {
   );
 }
 
-// ── 思想解析ローディング画面
-function ThinkingScreen() {
+// ───────────────────────────────────────────────────────────────
+//  ModeSelect — モード選択画面
+// ───────────────────────────────────────────────────────────────
+function ModeSelect({ onSelect }) {
+  return (
+    <div className="phase-enter" style={{ paddingTop:60, paddingBottom:48 }}>
+      {/* ヘッダー */}
+      <div style={{ textAlign:"center", marginBottom:48 }}>
+        <div style={{ fontFamily:"var(--f-mono)", fontSize:9, color:"rgba(80,120,180,0.55)",
+          letterSpacing:"0.28em", marginBottom:16 }}>
+          NOEMA · MODE SELECT
+        </div>
+        <h2 style={{
+          fontFamily:"var(--f-serif)", fontStyle:"italic", fontWeight:300,
+          fontSize:"clamp(24px,5vw,34px)", lineHeight:1.2,
+          background:"linear-gradient(160deg,rgba(225,232,248,0.96),rgba(150,175,230,0.9))",
+          WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
+          marginBottom:12,
+        }}>
+          どちらで始めますか？
+        </h2>
+        <p style={{ fontFamily:"var(--f-jp)", color:"rgba(130,148,188,0.7)", fontSize:13,
+          fontWeight:200, letterSpacing:"0.03em" }}>
+          あなたの今の状態に合わせて選んでください。
+        </p>
+      </div>
+
+      {/* カード2枚 */}
+      <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+
+        {/* QUICK */}
+        <button className="mode-card mode-card-quick" onClick={() => onSelect("quick")}>
+          <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:16 }}>
+            <div>
+              <div style={{ fontFamily:"var(--f-mono)", fontSize:9, color:"rgba(100,148,235,0.7)",
+                letterSpacing:"0.22em", marginBottom:6 }}>QUICK MODE</div>
+              <div style={{ fontFamily:"var(--f-serif)", fontStyle:"italic", fontWeight:300,
+                fontSize:22, color:"rgba(170,198,250,0.95)", lineHeight:1.2 }}>
+                かんたん診断
+              </div>
+            </div>
+            <div style={{ fontFamily:"var(--f-mono)", fontSize:10, color:"rgba(100,148,235,0.6)",
+              letterSpacing:"0.1em", flexShrink:0, marginTop:4 }}>
+              〜 2 min
+            </div>
+          </div>
+          <p style={{ fontFamily:"var(--f-jp)", color:"rgba(155,178,228,0.75)", fontSize:13,
+            fontWeight:200, lineHeight:1.85, marginBottom:18 }}>
+            5つの問い。二択。<br/>
+            スコアから思想タイプを即座に可視化します。
+          </p>
+          {/* 特徴タグ */}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+            {["5問","二択中心","シェアカード","思想マップ"].map(t => (
+              <span key={t} style={{ padding:"3px 10px", borderRadius:999, fontSize:9,
+                fontFamily:"var(--f-mono)", letterSpacing:"0.1em",
+                background:"rgba(80,120,210,0.12)", border:"1px solid rgba(100,145,230,0.2)",
+                color:"rgba(130,168,240,0.8)" }}>{t}</span>
+            ))}
+          </div>
+          {/* →矢印 */}
+          <div style={{ position:"absolute", bottom:24, right:24, fontFamily:"var(--f-mono)",
+            fontSize:14, color:"rgba(100,148,235,0.5)" }}>→</div>
+        </button>
+
+        {/* DEEP */}
+        <button className="mode-card mode-card-deep" onClick={() => onSelect("deep")}>
+          <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:16 }}>
+            <div>
+              <div style={{ fontFamily:"var(--f-mono)", fontSize:9, color:"rgba(150,110,230,0.7)",
+                letterSpacing:"0.22em", marginBottom:6 }}>DEEP MODE</div>
+              <div style={{ fontFamily:"var(--f-serif)", fontStyle:"italic", fontWeight:300,
+                fontSize:22, color:"rgba(195,168,252,0.95)", lineHeight:1.2 }}>
+                思考インタビュー
+              </div>
+            </div>
+            <div style={{ fontFamily:"var(--f-mono)", fontSize:10, color:"rgba(150,110,230,0.6)",
+              letterSpacing:"0.1em", flexShrink:0, marginTop:4 }}>
+              10〜15 min
+            </div>
+          </div>
+          <p style={{ fontFamily:"var(--f-jp)", color:"rgba(175,155,228,0.75)", fontSize:13,
+            fontWeight:200, lineHeight:1.85, marginBottom:18 }}>
+            5つのテーマ、12の問い。<br/>
+            AIがあなたの回答を観察し、思想の輪郭を深く照らします。
+          </p>
+          {/* 特徴タグ */}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+            {["12問","AI観察コメント","思考ログ","哲学的分析"].map(t => (
+              <span key={t} style={{ padding:"3px 10px", borderRadius:999, fontSize:9,
+                fontFamily:"var(--f-mono)", letterSpacing:"0.1em",
+                background:"rgba(110,75,200,0.12)", border:"1px solid rgba(140,100,230,0.2)",
+                color:"rgba(170,140,248,0.8)" }}>{t}</span>
+            ))}
+          </div>
+          <div style={{ position:"absolute", bottom:24, right:24, fontFamily:"var(--f-mono)",
+            fontSize:14, color:"rgba(150,110,230,0.5)" }}>→</div>
+        </button>
+      </div>
+
+      {/* 戻るボタン */}
+      <div style={{ textAlign:"center", marginTop:28 }}>
+        <button className="btn-ghost" onClick={() => onSelect("standard")}
+          style={{ fontSize:11, color:"rgba(90,110,150,0.5)" }}>
+          従来の診断（STANDARD）
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+//  QuickMode — 5問二択クイズ
+// ───────────────────────────────────────────────────────────────
+function QuickMode({ onComplete }) {
+  const [idx,      setIdx]      = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [answers,  setAnswers]  = useState([]);
+  const [qKey,     setQKey]     = useState(0);
+
+  const q = QUICK_QUESTIONS[idx];
+  const isLast = idx >= QUICK_QUESTIONS.length - 1;
+
+  const handleOpt = (opt) => setSelected(opt);
+
+  const handleNext = () => {
+    if (!selected) return;
+    const newAnswers = [...answers, { question:q.text, answer:selected.label, scores:selected.scores }];
+    setAnswers(newAnswers);
+    setSelected(null);
+    if (isLast) { onComplete(newAnswers); return; }
+    setIdx(i => i + 1);
+    setQKey(k => k + 1);
+  };
+
+  return (
+    <div className="phase-quiz" style={{ paddingTop:36 }}>
+      {/* プログレスドット */}
+      <div className="quick-progress-dots">
+        {QUICK_QUESTIONS.map((_, i) => (
+          <div key={i} className={`quick-dot ${i < idx ? "done" : i === idx ? "active" : ""}`}/>
+        ))}
+      </div>
+
+      {/* 質問 */}
+      <div key={qKey} style={{ textAlign:"center", marginBottom:36,
+        animation:"fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both" }}>
+        <div style={{ fontFamily:"var(--f-mono)", fontSize:9, color:"rgba(80,120,180,0.5)",
+          letterSpacing:"0.2em", marginBottom:18 }}>
+          {String(idx+1).padStart(2,"0")} / {String(QUICK_QUESTIONS.length).padStart(2,"0")}
+        </div>
+        <h3 style={{
+          fontFamily:"var(--f-serif)", fontStyle:"italic", fontWeight:300,
+          fontSize:"clamp(20px,5vw,28px)", lineHeight:1.55,
+          color:"rgba(218,228,248,0.96)", letterSpacing:"0.02em",
+        }}>
+          {q.text}
+        </h3>
+      </div>
+
+      {/* 二択ボタン */}
+      <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:28 }} key={"opts-"+qKey}>
+        {q.options.map((opt, i) => (
+          <button
+            key={opt.label}
+            className={`quick-opt ${selected?.label === opt.label ? "selected" : ""}`}
+            onClick={() => handleOpt(opt)}
+            style={{ animationDelay:`${i * 0.08}s` }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 次へボタン */}
+      <div style={{ textAlign:"center" }}>
+        <button className="btn-next" onClick={handleNext} disabled={!selected}>
+          {isLast ? "分析する" : "次へ"} →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+//  DeepMode — 思考インタビュー（5ステージ・AI観察コメント付き）
+// ───────────────────────────────────────────────────────────────
+function DeepMode({ onComplete }) {
+  const [stageIdx,    setStageIdx]    = useState(0);
+  const [qIdxInStage, setQIdxInStage] = useState(0);
+  const [selected,    setSelected]    = useState(null);
+  const [answers,     setAnswers]     = useState([]);   // 全回答ログ
+  const [observations,setObservations] = useState([]);  // AIの観察コメント
+  const [fetchingObs, setFetchingObs] = useState(false);
+  const [qKey,        setQKey]        = useState(0);
+  const [showObs,     setShowObs]     = useState(false); // 観察表示フラグ
+  const currentObs = observations[observations.length - 1] ?? null;
+
+  const stage = DEEP_STAGES[stageIdx];
+  const q     = stage?.questions[qIdxInStage];
+  const totalStages    = DEEP_STAGES.length;
+  const isLastInStage  = qIdxInStage >= stage?.questions.length - 1;
+  const isLastStage    = stageIdx >= totalStages - 1;
+  const isVeryLast     = isLastInStage && isLastStage;
+
+  const currentTraits = React.useMemo(() => calcTraits(answers), [answers]);
+
+  const handleSelect = (opt) => setSelected(opt);
+
+  const handleNext = async () => {
+    if (!selected) return;
+    const saved = selected;
+    const newAnswers = [...answers, {
+      question: q.text, answer: saved.label,
+      scores: saved.scores, stageId: stage.stageId,
+    }];
+    setAnswers(newAnswers);
+    setSelected(null);
+    setShowObs(false);
+
+    // AIの観察コメントを非同期取得
+    setFetchingObs(true);
+    const traits = calcTraits(newAnswers);
+    generateDeepFollowUp(q.text, saved.label, traits).then(obs => {
+      if (obs) {
+        setObservations(prev => [...prev, { q:q.text, a:saved.label, obs }]);
+        setShowObs(true);
+      }
+      setFetchingObs(false);
+    });
+
+    if (isVeryLast) {
+      setTimeout(() => onComplete(newAnswers, observations), 800);
+      return;
+    }
+    // 次の問いへ
+    if (isLastInStage) {
+      setStageIdx(i => i + 1);
+      setQIdxInStage(0);
+    } else {
+      setQIdxInStage(i => i + 1);
+    }
+    setQKey(k => k + 1);
+  };
+
+  if (!stage || !q) return null;
+
+  return (
+    <div style={{ paddingTop:32, paddingBottom:48 }}>
+      {/* ステージプログレスバー */}
+      <div className="deep-stage-bar">
+        {DEEP_STAGES.map((s, i) => (
+          <div key={s.stageId} className={`deep-stage-seg ${i < stageIdx ? "done" : i === stageIdx ? "active" : ""}`}/>
+        ))}
+      </div>
+
+      {/* ステージヘッダー */}
+      <div style={{ marginBottom:28 }}>
+        <div style={{ fontFamily:"var(--f-mono)", fontSize:8, color:"rgba(100,80,180,0.6)",
+          letterSpacing:"0.24em", marginBottom:6 }}>
+          {stage.themeEn} · {String(stageIdx+1).padStart(2,"0")}/{String(totalStages).padStart(2,"0")}
+        </div>
+        <div style={{ fontFamily:"var(--f-jp)", fontSize:12, color:"rgba(160,148,210,0.7)",
+          fontWeight:200, letterSpacing:"0.05em" }}>
+          {stage.intro}
+        </div>
+      </div>
+
+      {/* 問いカード */}
+      <div key={qKey} style={{
+        marginBottom:24, padding:"22px 20px",
+        background:"rgba(255,255,255,0.018)",
+        border:"1px solid rgba(255,255,255,0.07)",
+        borderTop:`2px solid rgba(110,85,200,0.35)`,
+        borderRadius:"0 0 18px 18px",
+        animation:"deepStageIn 0.55s cubic-bezier(0.16,1,0.3,1) both",
+        position:"relative",
+      }}>
+        {/* アンビエントグロー */}
+        <div style={{
+          position:"absolute", top:-60, left:"50%", width:200, height:120,
+          borderRadius:"50%", transform:"translateX(-50%)",
+          background:"radial-gradient(ellipse,rgba(100,75,200,0.12) 0%,transparent 70%)",
+          pointerEvents:"none", animation:"deepAmbient 6s ease-in-out infinite",
+        }}/>
+        <p className="deep-question-text">{q.text}</p>
+      </div>
+
+      {/* AIの観察コメント（前の回答に対して） */}
+      {showObs && currentObs && (
+        <div className="deep-observation">
+          <span style={{ color:"rgba(80,100,160,0.55)", marginRight:8, fontSize:9,
+            fontFamily:"var(--f-mono)", letterSpacing:"0.1em" }}>OBSERVATION</span>
+          {currentObs.obs}
+        </div>
+      )}
+      {fetchingObs && (
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16,
+          padding:"8px 14px", borderLeft:"2px solid rgba(80,100,160,0.2)" }}>
+          <div style={{ display:"flex", gap:4 }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{ width:4, height:4, borderRadius:"50%",
+                background:"rgba(100,130,200,0.5)",
+                animation:`typingDot 1.2s ease-in-out ${i*0.2}s infinite` }}/>
+            ))}
+          </div>
+          <span style={{ fontFamily:"var(--f-mono)", fontSize:8, color:"rgba(80,110,180,0.5)",
+            letterSpacing:"0.12em" }}>ANALYZING</span>
+        </div>
+      )}
+
+      {/* 選択肢 */}
+      <div style={{ marginTop:showObs||fetchingObs ? 20 : 0, marginBottom:20 }}>
+        {q.options.map((opt, i) => (
+          <button
+            key={`${qKey}-${opt.label}`}
+            className={`deep-opt ${selected?.label === opt.label ? "selected" : ""}`}
+            onClick={() => handleSelect(opt)}
+            style={{ animationDelay: `${0.05 + i*0.06}s`, animation:"deepStageIn 0.45s ease both" }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 次へ */}
+      <div style={{ textAlign:"right" }}>
+        <button className="btn-next" onClick={handleNext}
+          disabled={!selected || fetchingObs}>
+          {isVeryLast ? "分析する" : isLastInStage ? "次のテーマへ →" : "次へ →"}
+        </button>
+      </div>
+
+      {/* 思考ログ（直近3件） */}
+      {answers.length >= 2 && (
+        <div style={{ marginTop:36 }}>
+          <div style={{ fontFamily:"var(--f-mono)", fontSize:8, color:"rgba(70,90,140,0.45)",
+            letterSpacing:"0.2em", marginBottom:12 }}>THOUGHT LOG</div>
+          {answers.slice(-3).reverse().map((a, i) => (
+            <div key={i} className="thought-log-entry" style={{
+              opacity: i === 0 ? 0.85 : i === 1 ? 0.55 : 0.3,
+            }}>
+              <div style={{ fontFamily:"var(--f-mono)", fontSize:8, color:"rgba(80,100,150,0.5)",
+                letterSpacing:"0.08em", marginBottom:4 }}>{a.question}</div>
+              <div style={{ fontFamily:"var(--f-jp)", fontSize:12, color:"rgba(180,195,228,0.8)",
+                fontWeight:300 }}>{a.answer}</div>
+              {observations.find(o => o.q === a.question)?.obs && (
+                <div style={{ fontFamily:"var(--f-mono)", fontSize:9, color:"rgba(100,125,190,0.6)",
+                  marginTop:5, letterSpacing:"0.05em", fontStyle:"italic" }}>
+                  {observations.find(o => o.q === a.question).obs}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
   // ── 解析ステップ（要件通りのテキスト）
   const STEPS = [
     { id:"s0", label:"思想構造解析中",    sub:"THOUGHT STRUCTURE SCAN",    pct: 14 },
@@ -2762,14 +3488,15 @@ function Card({ children, style={}, className="", hover=true }) {
 // ───────────────────────────────────────────────────────────────
 export default function App() {
   const [phase, setPhase]           = useState("home");
+  const [mode,  setMode]            = useState("select"); // "select"|"quick"|"deep"|"standard"
   const [currentQId, setCurrentQId] = useState("root");
   const [answers, setAnswers]       = useState([]);
   const [selected, setSelected]     = useState(null);
   const [result, setResult]         = useState(null);
   const [apiError, setApiError]     = useState(null);
-  const [apiErrorCode, setApiErrorCode] = useState(null); // エラーコード分類
+  const [apiErrorCode, setApiErrorCode] = useState(null);
   const [pendingRun, setPendingRun] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);        // リトライ回数表示
+  const [retryCount, setRetryCount] = useState(0);
 
   // 会話UI用
   const [showReaction, setShowReaction] = useState(false);
@@ -2923,7 +3650,7 @@ export default function App() {
     }
   }, []);
   const restart = useCallback(() => {
-    setPhase("home"); setCurrentQId("root"); setAnswers([]);
+    setPhase("home"); setMode("select"); setCurrentQId("root"); setAnswers([]);
     setSelected(null); setResult(null); setApiError(null); setApiErrorCode(null);
     setShowReaction(false); setShowTyping(false); setShowQuestion(true);
     setQKey(0); setPendingReaction(null); setRetryCount(0);
@@ -3141,9 +3868,8 @@ export default function App() {
                 CLAUDE API · LITERARY ANALYSIS · NON-DETERMINISTIC OUTPUT
               </p>
 
-              {/* ── 起動ボタン ── */}
-              {/* ④ onClick: オーバーレイを表示してから画面遷移 */}
-              <button className="btn-start" onClick={() => setShowStartOverlay(true)}>
+              {/* ── 起動ボタン → モード選択へ ── */}
+              <button className="btn-start" onClick={() => setPhase("mode-select")}>
                 <span style={{ fontFamily:"var(--f-mono)", fontSize:9,
                   color:"rgba(100,155,210,0.6)", letterSpacing:"0.15em" }}>▶</span>
                 診断をはじめる
@@ -3161,8 +3887,32 @@ export default function App() {
           </>
         )}
 
-        {/* ══ QUIZ ══════════════════════════════════════════════ */}
-        {phase === "quiz" && currentQ && (
+        {/* ══ MODE SELECT ═══════════════════════════════════════ */}
+        {phase === "mode-select" && (
+          <ModeSelect onSelect={(m) => {
+            setMode(m);
+            if (m === "quick" || m === "deep") {
+              setPhase("quiz");
+            } else {
+              // standard: 従来フローへ
+              setShowStartOverlay(true);
+              setPhase("home");
+            }
+          }} />
+        )}
+
+        {/* ══ QUICK QUIZ ════════════════════════════════════════ */}
+        {phase === "quiz" && mode === "quick" && (
+          <QuickMode onComplete={(ans) => runDiagnosis(ans)} />
+        )}
+
+        {/* ══ DEEP QUIZ ═════════════════════════════════════════ */}
+        {phase === "quiz" && mode === "deep" && (
+          <DeepMode onComplete={(ans) => runDiagnosis(ans)} />
+        )}
+
+        {/* ══ QUIZ (STANDARD) ════════════════════════════════════ */}
+        {phase === "quiz" && (mode === "standard" || mode === "select") && currentQ && (
           <div className="phase-quiz" style={{ paddingTop:44 }}>
 
             {/* ── ヘッダー：深度インジケーター ── */}
