@@ -2221,36 +2221,34 @@ function PhilAvatarSVG({ name, initials, typeColor, size }) {
 // - hover時の青グロー・scale演出
 // - lazy loading対応
 function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = false }) {
-  const [imgError,   setImgError]   = React.useState(false);
-  const [imgLoaded,  setImgLoaded]  = React.useState(false);
-  const [isHovered,  setIsHovered]  = React.useState(false);
+  const [imgError,  setImgError]  = React.useState(false);
+  const [imgLoaded, setImgLoaded] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
 
   const rr = isMain ? 10 : 8;
   const wh = `${size}px`;
 
-  // ── CSSフィルター
-  // grayscale(1): 白黒化, brightness(0.82): 暗め, contrast(1.22): 強調, sepia(0.06): 微セピア
+  // ── フィルター設計
+  // grayscale(1): 白黒化  brightness(0.82): 暗め  contrast(1.22): 強調  sepia(0.06): 微セピア
   const baseFilter  = "grayscale(1) brightness(0.82) contrast(1.22) sepia(0.06)";
   const hoverFilter = "grayscale(1) brightness(0.95) contrast(1.25) sepia(0.04)";
 
-  // blue glow — typeColorから不透明度だけ変えた色を安全に生成
-  // 正規表現を避け、文字列操作でopacityを差し替える
+  // blue glow
   const baseGlow = typeColor ?? "rgba(80,120,220,0.6)";
-  // rgba(r,g,b,X) → rgba(r,g,b,newAlpha) に差し替えるヘルパー
   const withAlpha = (col, alpha) => {
     const last = col.lastIndexOf(",");
     return last > 0 ? col.slice(0, last + 1) + alpha + ")" : col;
   };
-  const glowLow    = withAlpha(baseGlow, "0.12");  // hover glow overlay
-  const glowBorder = withAlpha(baseGlow, "0.45");  // hover border
-  const glowSpin   = withAlpha(baseGlow, "0.30");  // spinner border
-  const glowFaint  = withAlpha(baseGlow, "0.18");  // shadow soft
-
+  const glowBorder = withAlpha(baseGlow, "0.45");
+  const glowLow    = withAlpha(baseGlow, "0.12");
+  const glowFaint  = withAlpha(baseGlow, "0.18");
+  const glowSpin   = withAlpha(baseGlow, "0.30");
   const hoverShadow = isMain
     ? `0 0 16px ${baseGlow}, 0 0 32px ${glowFaint}, 0 4px 20px rgba(0,0,0,0.5)`
     : `0 0 10px ${baseGlow}, 0 2px 12px rgba(0,0,0,0.4)`;
 
-  const showImg = image && !imgError;
+  // 画像表示条件: imageが存在しエラーでない
+  const showImg = Boolean(image) && !imgError;
 
   return (
     <div
@@ -2261,9 +2259,7 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
         width: wh, height: wh, borderRadius: rr,
         overflow: "hidden", flexShrink: 0,
         position: "relative",
-        border: isHovered
-          ? `1px solid ${glowBorder}`
-          : "1px solid rgba(255,255,255,0.1)",
+        border: isHovered ? `1px solid ${glowBorder}` : "1px solid rgba(255,255,255,0.1)",
         background: "#0b0d15",
         transition: "border-color 0.28s ease, box-shadow 0.28s ease, transform 0.28s cubic-bezier(0.4,0,0.2,1)",
         boxShadow: isHovered ? hoverShadow : "none",
@@ -2271,13 +2267,12 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
         cursor: "default",
       }}
     >
-      {/* ローディングスピナー（画像ロード中のみ表示） */}
+      {/* ── ローディングスピナー（画像ロード中・エラーなし時のみ） */}
       {showImg && !imgLoaded && (
         <div style={{
-          position: "absolute", inset: 0,
+          position: "absolute", inset: 0, zIndex: 1,
           background: "linear-gradient(135deg, #111420 0%, #0d1028 100%)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 1,
         }}>
           <div style={{
             width: size * 0.3, height: size * 0.3, borderRadius: "50%",
@@ -2290,46 +2285,50 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
 
       {showImg ? (
         <>
-          {/* 外部URL画像（Wikimedia Commons等・lazy loading） */}
+          {/* ── 実写画像
+              crossOrigin を付けない: Wikimediaは画像サーバーでCORSヘッダーを返さないため、
+              crossOrigin="anonymous"を付けるとブラウザがブロックしてonErrorが即時発火する。
+              referrerPolicy="no-referrer": Refererを送らないことでプライバシー保護かつ安定動作。
+              loading="lazy": 遅延読み込み
+              opacity: ロード完了後に1→スムーズfade-in
+          */}
           <img
             src={image}
             alt={name}
             loading="lazy"
             decoding="async"
-            // Wikimedia Commons は Referer が必要なため origin を送る
-            // "no-referrer" にすると403になる
-            referrerPolicy="origin-when-cross-origin"
-            crossOrigin="anonymous"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgError(true)}
+            referrerPolicy="no-referrer"
+            onLoad={() => {
+              setImgLoaded(true);
+            }}
+            onError={(e) => {
+              console.warn("[PhilAvatar] 画像ロード失敗:", name, image);
+              setImgError(true);
+            }}
             style={{
+              position: "absolute", inset: 0,
               width: "100%", height: "100%",
               objectFit: "cover",
               objectPosition: "center top",
               display: "block",
-              // ① grayscale: 白黒化（世界観統一）
-              // ② brightness(0.82): 暗め（ダーク背景に馴染む）
-              // ③ contrast(1.22): コントラスト強調（視認性）
-              // ④ sepia(0.06): 微セピア（古典・文学感）
-              // ⑤ hover時: brightness(0.95)で少し明るく
               filter: isHovered ? hoverFilter : baseFilter,
-              transition: "filter 0.35s ease, transform 0.35s ease, opacity 0.5s ease",
+              transition: "filter 0.35s ease, transform 0.35s ease, opacity 0.6s ease",
               transform: isHovered ? "scale(1.06)" : "scale(1)",
-              // スムーズfade-in: ロード完了まで opacity:0
               opacity: imgLoaded ? 1 : 0,
+              zIndex: 0,
             }}
           />
 
-          {/* ビネット＋グロスライン（常時） */}
+          {/* ── ビネット・グロスライン（常時・zIndex上位） */}
           <div style={{
             position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2,
             background: [
-              "radial-gradient(ellipse at 50% 60%, transparent 35%, rgba(0,0,0,0.52) 100%)",
-              "linear-gradient(180deg, rgba(255,255,255,0.055) 0%, transparent 28%)",
+              "radial-gradient(ellipse at 50% 65%, transparent 30%, rgba(0,0,0,0.55) 100%)",
+              "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 30%)",
             ].join(","),
           }}/>
 
-          {/* hover時 blue glow オーバーレイ */}
+          {/* ── hover blue glow オーバーレイ */}
           <div style={{
             position: "absolute", inset: 0, pointerEvents: "none", zIndex: 3,
             background: `radial-gradient(ellipse at 50% 50%, ${glowLow} 0%, transparent 70%)`,
@@ -2337,21 +2336,15 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
             transition: "opacity 0.28s ease",
           }}/>
 
-          {/* typeColor tint（超微量・常時） */}
+          {/* ── typeColor subtle tint */}
           <div style={{
             position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2,
-            background: typeColor ?? "transparent",
-            opacity: 0.06,
+            background: typeColor ?? "transparent", opacity: 0.06,
           }}/>
         </>
       ) : (
-        /* SVGシルエット（フォールバック） */
-        <PhilAvatarSVG
-          name={name}
-          initials={initials}
-          typeColor={typeColor}
-          size={size}
-        />
+        /* ── SVGシルエット（フォールバック: imageなし or 読み込みエラー時） */
+        <PhilAvatarSVG name={name} initials={initials} typeColor={typeColor} size={size} />
       )}
     </div>
   );
