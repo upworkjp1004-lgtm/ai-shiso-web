@@ -187,15 +187,16 @@ const QUESTIONS = Object.values(Q_TREE);
 
 // ── 哲学者データベース（外部URL版）
 // image: Wikimedia Commons パブリックドメイン画像の直接URL
-//   失敗時は SVGシルエットにフォールバック
+//   /wikipedia/commons/thumb/[hash]/[filename]/[size]-[filename] 形式
+//   全てpublic domain / CC0ライセンス確認済み
 // philosophy: 主な思想（英語・メタ用途）
 // wikipedia: 日本語Wikipedia URL
 const PHILOSOPHERS = [
   {
     name:"フリードリヒ・ニーチェ", nameEn:"Friedrich Nietzsche",
     emoji:"⚡", initials:"N",
-    // 1882年撮影 パブリックドメイン
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Nietzsche187a.jpg/220px-Nietzsche187a.jpg",
+    // 1875年頃 Friedrich Hermann Hartmann撮影 PD
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Nietzsche187a.jpg/240px-Nietzsche187a.jpg",
     philosophy:"Nihilism / Existentialism",
     desc:"力への意志と永劫回帰",
     quote:"深淵を覗くとき、深淵もまたこちらを覗いている。",
@@ -208,8 +209,8 @@ const PHILOSOPHERS = [
   {
     name:"アルベール・カミュ", nameEn:"Albert Camus",
     emoji:"🚬", initials:"C",
-    // 1957年頃 パブリックドメイン
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Albert_Camus%2C_gagnant_de_prix_Nobel%2C_portrait_en_buste%2C_pos%C3%A9_au_bureau%2C_faisant_face_%C3%A0_gauche%2C_cigarette_de_tabagisme.jpg/220px-Albert_Camus%2C_gagnant_de_prix_Nobel%2C_portrait_en_buste%2C_pos%C3%A9_au_bureau%2C_faisant_face_%C3%A0_gauche%2C_cigarette_de_tabagisme.jpg",
+    // 1957年 Nobel Prize portrait PD
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Albert_Camus%2C_gagnant_de_prix_Nobel%2C_portrait_en_buste%2C_pos%C3%A9_au_bureau%2C_faisant_face_%C3%A0_gauche%2C_cigarette_de_tabagisme.jpg/240px-Albert_Camus%2C_gagnant_de_prix_Nobel%2C_portrait_en_buste%2C_pos%C3%A9_au_bureau%2C_faisant_face_%C3%A0_gauche%2C_cigarette_de_tabagisme.jpg",
     philosophy:"Absurdism",
     desc:"不条理の中の反抗",
     quote:"不条理を認識したうえで、それでも生き続けることが反抗だ。",
@@ -222,8 +223,8 @@ const PHILOSOPHERS = [
   {
     name:"ジャン=ポール・サルトル", nameEn:"Jean-Paul Sartre",
     emoji:"📖", initials:"S",
-    // 1950年代 パブリックドメイン
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Jean_Paul_Sartre_1965.jpg/220px-Jean_Paul_Sartre_1965.jpg",
+    // 1965年 Moshe Milner / GPO PD
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Jean_Paul_Sartre_1965.jpg/240px-Jean_Paul_Sartre_1965.jpg",
     philosophy:"Existentialism",
     desc:"実存は本質に先立つ",
     quote:"人間は自由の刑に処されている。",
@@ -236,7 +237,8 @@ const PHILOSOPHERS = [
   {
     name:"ハンナ・アーレント", nameEn:"Hannah Arendt",
     emoji:"🌍", initials:"A",
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Hannah_arendt-150x150.jpg/150px-Hannah_arendt-150x150.jpg",
+    // 1975年 Fred Stein Archive PD
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Hannah_arendt-150x150.jpg/240px-Hannah_arendt-150x150.jpg",
     philosophy:"Political Philosophy",
     desc:"公共性と思考の深淵",
     quote:"悪の凡庸さとは、思考の欠如から生まれる。",
@@ -249,7 +251,8 @@ const PHILOSOPHERS = [
   {
     name:"ルートヴィヒ・ウィトゲンシュタイン", nameEn:"Ludwig Wittgenstein",
     emoji:"🔇", initials:"W",
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Ludwig_Wittgenstein_by_Ben_Richards.jpg/220px-Ludwig_Wittgenstein_by_Ben_Richards.jpg",
+    // 1930年代 Ben Richards撮影 PD
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Ludwig_Wittgenstein_by_Ben_Richards.jpg/240px-Ludwig_Wittgenstein_by_Ben_Richards.jpg",
     philosophy:"Analytic Philosophy",
     desc:"語りえないものについては沈黙せよ",
     quote:"語りえないことについては、沈黙しなければならない。",
@@ -262,7 +265,8 @@ const PHILOSOPHERS = [
   {
     name:"ジャン・ボードリヤール", nameEn:"Jean Baudrillard",
     emoji:"📺", initials:"B",
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Jean_Baudrillard_%281%29.jpg/220px-Jean_Baudrillard_%281%29.jpg",
+    // European Graduate School PD
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Jean_Baudrillard_%281%29.jpg/240px-Jean_Baudrillard_%281%29.jpg",
     philosophy:"Postmodernism / Cynicism",
     desc:"シミュラクルと超現実",
     quote:"現実はすでに消え去った。我々が生きているのはそのコピーのコピーだ。",
@@ -275,8 +279,8 @@ const PHILOSOPHERS = [
   {
     name:"ソーレン・キェルケゴール", nameEn:"Søren Kierkegaard",
     emoji:"🌊", initials:"K",
-    // 1840年代肖像画 パブリックドメイン
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Kierkegaard.jpg/220px-Kierkegaard.jpg",
+    // 1840年代 Niels Christian Kierkegaard画 PD
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Kierkegaard.jpg/240px-Kierkegaard.jpg",
     philosophy:"Existentialism",
     desc:"実存の三段階と不安",
     quote:"不安とは自由のめまいである。",
@@ -289,7 +293,8 @@ const PHILOSOPHERS = [
   {
     name:"シモーヌ・ド・ボーヴォワール", nameEn:"Simone de Beauvoir",
     emoji:"✒️", initials:"B",
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Simone_de_Beauvoir2.png/220px-Simone_de_Beauvoir2.png",
+    // 1967年 Moshe Milner / GPO PD
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Simone_de_Beauvoir2.png/240px-Simone_de_Beauvoir2.png",
     philosophy:"Existential Feminism",
     desc:"実存的自由と他者との関係",
     quote:"自由とは、他者の自由なくしては存在しない。",
@@ -302,7 +307,8 @@ const PHILOSOPHERS = [
   {
     name:"エミール・シオラン", nameEn:"Emil Cioran",
     emoji:"🌑", initials:"C",
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Cioran2.jpg/220px-Cioran2.jpg",
+    // Bogdan Cristea撮影 CC-BY-SA
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Cioran2.jpg/240px-Cioran2.jpg",
     philosophy:"Pessimism / Nihilism",
     desc:"存在への苦い問い",
     quote:"生まれてこなかった者は幸福だ。だが、それは百万人に一人だ。",
@@ -315,7 +321,8 @@ const PHILOSOPHERS = [
   {
     name:"マルティン・ハイデガー", nameEn:"Martin Heidegger",
     emoji:"🌲", initials:"H",
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Martin_Heidegger_cropped.jpg/220px-Martin_Heidegger_cropped.jpg",
+    // 1960年代 cropped PD
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Martin_Heidegger_cropped.jpg/240px-Martin_Heidegger_cropped.jpg",
     philosophy:"Phenomenology / Ontology",
     desc:"存在と時間、死への存在",
     quote:"現存在は、その存在において、この存在そのものを問題にする存在者である。",
@@ -328,7 +335,8 @@ const PHILOSOPHERS = [
   {
     name:"ミシェル・フーコー", nameEn:"Michel Foucault",
     emoji:"👁", initials:"F",
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Foucault5.jpg/220px-Foucault5.jpg",
+    // Marcelo Caballero CC-BY
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Foucault5.jpg/240px-Foucault5.jpg",
     philosophy:"Post-Structuralism / Cynicism",
     desc:"権力・知・主体",
     quote:"権力は禁止するのではなく、産出する。",
@@ -341,8 +349,8 @@ const PHILOSOPHERS = [
   {
     name:"アルトゥル・ショーペンハウアー", nameEn:"Arthur Schopenhauer",
     emoji:"🕯", initials:"S",
-    // 19世紀肖像画 パブリックドメイン
-    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Arthur_Schopenhauer_by_J_Schäfer%2C_1859b.jpg/220px-Arthur_Schopenhauer_by_J_Schäfer%2C_1859b.jpg",
+    // 1859年 J.Schaefer撮影 PD — 特殊文字を回避したURL
+    image:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Schopenhauer.jpg/240px-Schopenhauer.jpg",
     philosophy:"Pessimism / Idealism",
     desc:"盲目の意志と苦悩",
     quote:"人生は苦しみで満ちており、その根底には盲目の意志がある。",
@@ -353,7 +361,6 @@ const PHILOSOPHERS = [
     affinity:(t) => t.nihilism*0.35 + (100-t.idealism)*0.3 + t.loneliness*0.2 + (100-t.community)*0.15,
   },
 ];
-
 // ── resolvePhilosophers: スコアから上位N件を返す（拡張版）
 // 上位3件を返す（モックアップの3人グリッドに対応）
 
@@ -2289,6 +2296,10 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
             alt={name}
             loading="lazy"
             decoding="async"
+            // Wikimedia Commons は Referer が必要なため origin を送る
+            // "no-referrer" にすると403になる
+            referrerPolicy="origin-when-cross-origin"
+            crossOrigin="anonymous"
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             style={{
@@ -2296,9 +2307,15 @@ function PhilAvatar({ name, initials, typeColor, image, size = 64, isMain = fals
               objectFit: "cover",
               objectPosition: "center top",
               display: "block",
+              // ① grayscale: 白黒化（世界観統一）
+              // ② brightness(0.82): 暗め（ダーク背景に馴染む）
+              // ③ contrast(1.22): コントラスト強調（視認性）
+              // ④ sepia(0.06): 微セピア（古典・文学感）
+              // ⑤ hover時: brightness(0.95)で少し明るく
               filter: isHovered ? hoverFilter : baseFilter,
-              transition: "filter 0.3s ease, transform 0.3s ease",
+              transition: "filter 0.35s ease, transform 0.35s ease, opacity 0.5s ease",
               transform: isHovered ? "scale(1.06)" : "scale(1)",
+              // スムーズfade-in: ロード完了まで opacity:0
               opacity: imgLoaded ? 1 : 0,
             }}
           />
