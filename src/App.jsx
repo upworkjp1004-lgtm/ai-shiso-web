@@ -3142,6 +3142,9 @@ function DeepMode({ onComplete }) {
     </div>
   );
 }
+
+// ── 思想解析ローディング画面
+function ThinkingScreen() {
   // ── 解析ステップ（要件通りのテキスト）
   const STEPS = [
     { id:"s0", label:"思想構造解析中",    sub:"THOUGHT STRUCTURE SCAN",    pct: 14 },
