@@ -16,168 +16,168 @@ const Q_TREE = {
   // ══ LAYER 0: 入口（固定2問） ══════════════════════════════
   "root": {
     id:"root", layer:0,
-    text:"努力できるって、才能だと思う？",
+    text:"終電を逃した夜、あなたは何を考える？",
     reaction: null,
     options:[
-      { label:"思う",               scores:{ idealism:-2, realism:+3, nihilism:+1 },  nextId:"q_freedom" },
-      { label:"思わない",           scores:{ idealism:+3, freedom:+1 },               nextId:"q_freedom" },
-      { label:"どちらともいえない",  scores:{ logic:+2, realism:+1 },                  nextId:"q_freedom" },
-      { label:"才能より環境だと思う",scores:{ realism:+2, community:+2, idealism:-1 }, nextId:"q_freedom" },
+      { label:"別にいい、どこかで時間を潰す",     scores:{ idealism:-2, realism:+3, nihilism:+1 },  nextId:"q_freedom" },
+      { label:"誰かに連絡してみようかと考える",   scores:{ idealism:+3, freedom:+1 },               nextId:"q_freedom" },
+      { label:"ひとりの時間ができた、と少し思う", scores:{ logic:+2, realism:+1 },                  nextId:"q_freedom" },
+      { label:"今日という日が終わらなくて良かった",scores:{ realism:+2, community:+2, idealism:-1 }, nextId:"q_freedom" },
     ],
   },
 
   // ── LAYER 1: 自由軸分岐 ────────────────────────────────
   "q_freedom": {
     id:"q_freedom", layer:1,
-    text:"自由と安心、どっちを選ぶ？",
+    text:"あなたが本当に欲しいのは、自由と安心、どっちだと思う？",
     reaction: null,
     options:[
-      { label:"自由",            scores:{ freedom:+4, stability:-2, nihilism:+1 },  nextId:"q_lone_hi" },
-      { label:"安心",            scores:{ stability:+4, freedom:-2, community:+1 }, nextId:"q_lone_lo" },
-      { label:"どちらも諦めない", scores:{ idealism:+3, romanticism:+2 },            nextId:"q_ideal"   },
-      { label:"どちらもいらない", scores:{ nihilism:+4, loneliness:+2, freedom:+1 }, nextId:"q_nihil"   },
+      { label:"自由。縛られたくない",            scores:{ freedom:+4, stability:-2, nihilism:+1 },  nextId:"q_lone_hi" },
+      { label:"安心。どこかに居場所が欲しい",    scores:{ stability:+4, freedom:-2, community:+1 }, nextId:"q_lone_lo" },
+      { label:"両方。諦めたくない",              scores:{ idealism:+3, romanticism:+2 },            nextId:"q_ideal"   },
+      { label:"どっちも要らない気がしてきた",    scores:{ nihilism:+4, loneliness:+2, freedom:+1 }, nextId:"q_nihil"   },
     ],
   },
 
   // ══ LAYER 2A: 自由高（loneliness 方向） ══════════════════
   "q_lone_hi": {
     id:"q_lone_hi", layer:2,
-    text:"一人でいる時間と、人といる時間。どちらがより「自分らしい」と感じる？",
+    text:"深夜3時、ひとりでいる。その静けさは心地いい？",
     reaction:"自由を選んだ人は、孤独との関係が鍵になる気がして。",
     options:[
-      { label:"一人の時間",             scores:{ loneliness:+4, freedom:+2, community:-2 }, nextId:"q_lone_deep" },
-      { label:"人といる時間",           scores:{ community:+3, emotion:+2, loneliness:-1 }, nextId:"q_social"    },
-      { label:"どちらも同じくらい必要", scores:{ logic:+2, realism:+1 },                    nextId:"q_tension"   },
-      { label:"状況による",             scores:{ realism:+3, stability:+1 },                nextId:"q_tension"   },
+      { label:"心地いい。ここが一番正直になれる",    scores:{ loneliness:+4, freedom:+2, community:-2 }, nextId:"q_lone_deep" },
+      { label:"少し寂しいが、それも悪くない",        scores:{ community:+3, emotion:+2, loneliness:-1 }, nextId:"q_social"    },
+      { label:"静けさより、誰かの声が欲しい",        scores:{ logic:+2, realism:+1 },                    nextId:"q_tension"   },
+      { label:"いつのまにかこうなっていた",          scores:{ realism:+3, stability:+1 },                nextId:"q_tension"   },
     ],
   },
 
   // ══ LAYER 2B: 安定高（community 方向） ═══════════════════
   "q_lone_lo": {
     id:"q_lone_lo", layer:2,
-    text:"誰かと深くつながるとき、どんな感覚が近い？",
+    text:"誰かといるとき、本当の自分でいられてる？",
     reaction:"なるほど。安心の中身が気になって。",
     options:[
-      { label:"守られている感覚",     scores:{ stability:+3, community:+2 },          nextId:"q_social"  },
-      { label:"理解されている感覚",   scores:{ emotion:+3, community:+2, logic:-1 },   nextId:"q_social"  },
-      { label:"あまり深くつながれない",scores:{ loneliness:+3, nihilism:+1 },          nextId:"q_nihil"   },
-      { label:"つながりの感覚がわからない",scores:{ nihilism:+2, realism:+1 },         nextId:"q_nihil"   },
+      { label:"ある人といるときは、なれてる",      scores:{ stability:+3, community:+2 },          nextId:"q_social"  },
+      { label:"わかってもらえてる感じがある",      scores:{ emotion:+3, community:+2, logic:-1 },   nextId:"q_social"  },
+      { label:"いつもどこか演じている気がする",    scores:{ loneliness:+3, nihilism:+1 },           nextId:"q_nihil"   },
+      { label:"「本当の自分」が何かわからない",    scores:{ nihilism:+2, realism:+1 },              nextId:"q_nihil"   },
     ],
   },
 
   // ══ LAYER 2C: 理想主義方向 ════════════════════════════════
   "q_ideal": {
     id:"q_ideal", layer:2,
-    text:"「世界はもっと良くなれる」という感覚、今も持っていますか？",
+    text:"「世界は変わる」という感覚、今もどこかに残ってる？",
     reaction:"面白いですね。理想と現実の間にいる感じがして。",
     options:[
-      { label:"強く持っている",       scores:{ idealism:+4, romanticism:+2 },           nextId:"q_ideal_deep" },
-      { label:"持ちたいけど揺れてる", scores:{ idealism:+2, nihilism:+1, emotion:+1 },   nextId:"q_tension"    },
-      { label:"あまり持てなくなった", scores:{ nihilism:+2, realism:+2, idealism:-1 },   nextId:"q_nihil"      },
-      { label:"最初から持っていない", scores:{ nihilism:+3, realism:+3, idealism:-2 },   nextId:"q_nihil"      },
+      { label:"ある。それを信じて動いてる",        scores:{ idealism:+4, romanticism:+2 },           nextId:"q_ideal_deep" },
+      { label:"信じたいけど、揺れてる",            scores:{ idealism:+2, nihilism:+1, emotion:+1 },   nextId:"q_tension"    },
+      { label:"もう期待しない方が楽だと気づいた",  scores:{ nihilism:+2, realism:+2, idealism:-1 },   nextId:"q_nihil"      },
+      { label:"最初からそういう感覚がない",        scores:{ nihilism:+3, realism:+3, idealism:-2 },   nextId:"q_nihil"      },
     ],
   },
 
   // ══ LAYER 2D: 虚無方向 ═══════════════════════════════════
   "q_nihil": {
     id:"q_nihil", layer:2,
-    text:"「意味がない」と感じた瞬間、どうしていますか？",
+    text:"「何もかもどうでもいい」と思う瞬間、あなたはどうする？",
     reaction:"では次に。少し深い方へ。",
     options:[
-      { label:"そのまま受け入れる",         scores:{ nihilism:+4, loneliness:+1 },           nextId:"q_nihil_deep" },
-      { label:"別のことに集中する",         scores:{ realism:+2, stability:+2 },              nextId:"q_tension"    },
-      { label:"意味を作ろうとする",         scores:{ idealism:+2, freedom:+2, nihilism:-1 },  nextId:"q_ideal_deep" },
-      { label:"「意味がない」こと自体が怖い",scores:{ community:+2, emotion:+3, nihilism:-2 }, nextId:"q_social"     },
+      { label:"そのまま、ぼーっとしている",         scores:{ nihilism:+4, loneliness:+1 },           nextId:"q_nihil_deep" },
+      { label:"何かに集中して、感覚をごまかす",     scores:{ realism:+2, stability:+2 },              nextId:"q_tension"    },
+      { label:"意味を自分で作ろうとする",           scores:{ idealism:+2, freedom:+2, nihilism:-1 },  nextId:"q_ideal_deep" },
+      { label:"その感覚自体が怖くて、誰かに話す",   scores:{ community:+2, emotion:+3, nihilism:-2 }, nextId:"q_social"     },
     ],
   },
 
   // ══ LAYER 3A: 孤独深化 ════════════════════════════════════
   "q_lone_deep": {
     id:"q_lone_deep", layer:3,
-    text:"一人でいることは「選んでいる」感じ？それとも「なってしまっている」感じ？",
+    text:"ひとりでいることは、「選んでいる」のか「なってしまっている」のか、正直なところ。",
     reaction:"孤独と自由が重なる場所を見ている気がして。",
     options:[
-      { label:"選んでいる",           scores:{ freedom:+3, loneliness:+2, community:-2 }, nextId:"q_belief" },
-      { label:"なってしまっている",   scores:{ loneliness:+3, nihilism:+2, freedom:-1 },  nextId:"q_belief" },
-      { label:"最初は選んだが今は慣れ",scores:{ loneliness:+2, realism:+2 },               nextId:"q_belief" },
-      { label:"よくわからない",       scores:{ nihilism:+1, realism:+1 },                  nextId:"q_belief" },
+      { label:"選んでいる。その方が楽だから",        scores:{ freedom:+3, loneliness:+2, community:-2 }, nextId:"q_belief" },
+      { label:"気づいたらそうなっていた",            scores:{ loneliness:+3, nihilism:+2, freedom:-1 },  nextId:"q_belief" },
+      { label:"最初は選んだが、今は慣れた",          scores:{ loneliness:+2, realism:+2 },               nextId:"q_belief" },
+      { label:"よくわからない、どちらでもある",      scores:{ nihilism:+1, realism:+1 },                  nextId:"q_belief" },
     ],
   },
 
   // ══ LAYER 3B: 社会性深化 ══════════════════════════════════
   "q_social": {
     id:"q_social", layer:3,
-    text:"誰かに「理解された」と感じた経験は、あなたの人生にどのくらいある？",
+    text:"「本当に理解された」と感じた瞬間、あなたの人生に何度あった？",
     reaction:"なるほど。人との距離の取り方が見えてきた気がして。",
     options:[
-      { label:"何度もある",         scores:{ community:+3, emotion:+2, loneliness:-2 }, nextId:"q_belief" },
-      { label:"数えるくらいある",   scores:{ emotion:+1, loneliness:+1 },               nextId:"q_belief" },
-      { label:"ほとんどない",       scores:{ loneliness:+3, nihilism:+1, community:-2 }, nextId:"q_belief" },
-      { label:"理解されたくない",   scores:{ freedom:+2, loneliness:+2, community:-3 },  nextId:"q_belief" },
+      { label:"何度かある。その記憶は今も温かい",   scores:{ community:+3, emotion:+2, loneliness:-2 }, nextId:"q_belief" },
+      { label:"数えるくらい。でも忘れられない",     scores:{ emotion:+1, loneliness:+1 },               nextId:"q_belief" },
+      { label:"ほとんどない。結局わかってもらえない",scores:{ loneliness:+3, nihilism:+1, community:-2 }, nextId:"q_belief" },
+      { label:"理解されることを望んでいない",       scores:{ freedom:+2, loneliness:+2, community:-3 },  nextId:"q_belief" },
     ],
   },
 
   // ══ LAYER 3C: 矛盾・緊張 ══════════════════════════════════
   "q_tension": {
     id:"q_tension", layer:3,
-    text:"自分の中に、矛盾した価値観が同時に存在していると感じますか？",
+    text:"自分の中で、矛盾したものが同時に存在している感覚はある？",
     reaction:"興味深いですね。葛藤の場所が見えてきた。",
     options:[
-      { label:"常にある",         scores:{ emotion:+2, idealism:+1, nihilism:+1 },       nextId:"q_belief" },
-      { label:"たまにある",       scores:{ logic:+2, realism:+1 },                        nextId:"q_belief" },
-      { label:"あまり感じない",   scores:{ logic:+3, stability:+2, nihilism:-1 },          nextId:"q_belief" },
-      { label:"矛盾があるのが普通",scores:{ realism:+2, romanticism:+1 },                  nextId:"q_belief" },
+      { label:"常にある。それが自分だとも思う",    scores:{ emotion:+2, idealism:+1, nihilism:+1 },       nextId:"q_belief" },
+      { label:"たまにある。気づくと混乱する",      scores:{ logic:+2, realism:+1 },                        nextId:"q_belief" },
+      { label:"あまりない。一本道で動いている",    scores:{ logic:+3, stability:+2, nihilism:-1 },          nextId:"q_belief" },
+      { label:"矛盾があるのが当然だと思っている",  scores:{ realism:+2, romanticism:+1 },                  nextId:"q_belief" },
     ],
   },
 
   // ══ LAYER 3D: 理想深化 ════════════════════════════════════
   "q_ideal_deep": {
     id:"q_ideal_deep", layer:3,
-    text:"理想を持ち続けることは、時として苦しくなりますか？",
+    text:"理想を持ち続けることが、苦しくなることはある？",
     reaction:"理想主義の裏側を少し見てみたくて。",
     options:[
-      { label:"なる。でも手放せない",  scores:{ idealism:+3, romanticism:+2, nihilism:+1 }, nextId:"q_belief" },
-      { label:"苦しさより充実感が大きい",scores:{ idealism:+4, emotion:+2 },                nextId:"q_belief" },
-      { label:"だから現実的になろうとしている",scores:{ realism:+3, idealism:-1 },          nextId:"q_belief" },
-      { label:"苦しくなったので理想を捨てた",  scores:{ nihilism:+3, realism:+3, idealism:-3 }, nextId:"q_belief" },
+      { label:"ある。でも手放せない。それが自分だから",scores:{ idealism:+3, romanticism:+2, nihilism:+1 }, nextId:"q_belief" },
+      { label:"苦しさより、信じている方が充実する",  scores:{ idealism:+4, emotion:+2 },                nextId:"q_belief" },
+      { label:"だから少しずつ現実的になっている",    scores:{ realism:+3, idealism:-1 },                nextId:"q_belief" },
+      { label:"苦しくなったので、理想を諦めた",      scores:{ nihilism:+3, realism:+3, idealism:-3 },   nextId:"q_belief" },
     ],
   },
 
   // ══ LAYER 3E: 虚無深化 ════════════════════════════════════
   "q_nihil_deep": {
     id:"q_nihil_deep", layer:3,
-    text:"「意味がない」という感覚は、あなたを軽くしますか？それとも重くしますか？",
+    text:"「何も意味がない」という感覚は、あなたを軽くする？それとも重くする？",
     reaction:"そこが核心に近い気がして。",
     options:[
-      { label:"軽くする",       scores:{ nihilism:+3, freedom:+2, loneliness:+1 },   nextId:"q_belief" },
-      { label:"重くする",       scores:{ nihilism:+2, loneliness:+3, emotion:+1 },   nextId:"q_belief" },
-      { label:"どちらでもある", scores:{ nihilism:+2, realism:+2 },                  nextId:"q_belief" },
-      { label:"まだわからない", scores:{ nihilism:+1, idealism:+1 },                  nextId:"q_belief" },
+      { label:"軽くする。縛られるものが消える",    scores:{ nihilism:+3, freedom:+2, loneliness:+1 },   nextId:"q_belief" },
+      { label:"重くする。底のない穴に落ちる感じ",  scores:{ nihilism:+2, loneliness:+3, emotion:+1 },   nextId:"q_belief" },
+      { label:"どちらでもある。夜によって違う",    scores:{ nihilism:+2, realism:+2 },                  nextId:"q_belief" },
+      { label:"まだわからない。今夜も考えている",  scores:{ nihilism:+1, idealism:+1 },                  nextId:"q_belief" },
     ],
   },
 
   // ══ LAYER 4: 全分岐の終端（共通2問） ════════════════════════
   "q_belief": {
     id:"q_belief", layer:4,
-    text:"誰にも理解されなくても、自分の信念は貫く？",
+    text:"誰にも理解されなくても、自分の感じ方は正しいと思える？",
     reaction:"最後に、一番核になるところを聞かせてください。",
     options:[
-      { label:"貫く",               scores:{ idealism:+3, loneliness:+2, community:-2 }, nextId:"q_final" },
-      { label:"状況による",         scores:{ realism:+3, logic:+2 },                      nextId:"q_final" },
-      { label:"理解されないなら変える",scores:{ community:+2, emotion:+2, idealism:-1 },  nextId:"q_final" },
-      { label:"信念が持てない",     scores:{ nihilism:+3, loneliness:+1, idealism:-2 },   nextId:"q_final" },
+      { label:"貫く。それしかできない",          scores:{ idealism:+3, loneliness:+2, community:-2 }, nextId:"q_final" },
+      { label:"状況による。柔軟でいたい",        scores:{ realism:+3, logic:+2 },                      nextId:"q_final" },
+      { label:"理解されないなら、変えてみる",    scores:{ community:+2, emotion:+2, idealism:-1 },     nextId:"q_final" },
+      { label:"信念というものが持てない",        scores:{ nihilism:+3, loneliness:+1, idealism:-2 },   nextId:"q_final" },
     ],
   },
 
   "q_final": {
     id:"q_final", layer:4,
-    text:"言葉にできない感情は、存在すると思う？",
+    text:"言葉にならない感情は、あなたの中に存在していると思う？",
     reaction:"では次に。",
     options:[
-      { label:"存在する",                    scores:{ romanticism:+3, emotion:+3, logic:-1 }, nextId:null },
-      { label:"言葉にできなければ存在しない", scores:{ logic:+4, nihilism:+1, romanticism:-2 },nextId:null },
-      { label:"存在するけど、意味はない",     scores:{ nihilism:+3, realism:+2 },              nextId:null },
-      { label:"考えたことがなかった",         scores:{ realism:+1, stability:+1 },             nextId:null },
+      { label:"ある。それが一番本当のことだと思う",  scores:{ romanticism:+3, emotion:+3, logic:-1 }, nextId:null },
+      { label:"言葉にならないなら、存在しないのと同じ",scores:{ logic:+4, nihilism:+1, romanticism:-2 },nextId:null },
+      { label:"あるけど、意味があるかはわからない",  scores:{ nihilism:+3, realism:+2 },              nextId:null },
+      { label:"考えたことがなかった",               scores:{ realism:+1, stability:+1 },             nextId:null },
     ],
   },
 };
@@ -189,42 +189,43 @@ const QUESTIONS = Object.values(Q_TREE);
 //  QUICK MODE 質問セット（5問・二択・30秒〜2分）
 // ══════════════════════════════════════════════════════════════
 const QUICK_QUESTIONS = [
-  { id:"q1", text:"あなたにとって、「自由」とは？",
+  { id:"q1", text:"夜中に急に泣けてくることって、ある？",
     options:[
-      { label:"何ものにも縛られないこと",   scores:{ freedom:+3, stability:-2, curiosity:+1 } },
-      { label:"安心できる場所があること",   scores:{ stability:+3, community:+2, optimism:+1 } },
-      { label:"自分で選べること",           scores:{ freedom:+2, idealism:+2, rationality:+1 } },
-      { label:"どちらも、時と場合による",   scores:{ realism:+3, rationality:+1 } },
+      { label:"たまにある。理由もわからないまま",  scores:{ emotion:+3, loneliness:+2, sensitivity:+1 } },
+      { label:"ある。感情が夜になると戻ってくる",  scores:{ romanticism:+2, emotion:+3, nihilism:+1 } },
+      { label:"あまりない。感情を整理してから寝る", scores:{ logic:+2, stability:+2, rationality:+1 } },
+      { label:"ない。泣くことに意味を感じない",    scores:{ nihilism:+2, realism:+2, rationality:+1 } },
     ] },
-  { id:"q2", text:"一人でいるとき、あなたは？",
+  { id:"q2", text:"誰かに「あなたのことわかる」と言われたとき、どう感じる？",
     options:[
-      { label:"静かで、心地いい",           scores:{ loneliness:+3, sensitivity:+1 } },
-      { label:"少し寂しい、もの足りない",   scores:{ community:+3, emotion:+2 } },
-      { label:"思考が深くなる気がする",     scores:{ loneliness:+2, rationality:+2, curiosity:+1 } },
-      { label:"創作や趣味に没頭できる",     scores:{ freedom:+2, optimism:+1, sensitivity:+2 } },
+      { label:"少し嬉しい。でも本当にわかるの？とも思う", scores:{ loneliness:+2, nihilism:+1, emotion:+2 } },
+      { label:"素直に嬉しい",                            scores:{ community:+3, emotion:+2, optimism:+1 } },
+      { label:"わかってほしいけど、わかってほしくない",   scores:{ loneliness:+3, freedom:+2, sensitivity:+2 } },
+      { label:"どうせわからない、と思ってしまう",         scores:{ nihilism:+3, loneliness:+2, rationality:+1 } },
     ] },
-  { id:"q3", text:"「意味」について、どちらが近い？",
+  { id:"q3", text:"過去を振り返ることと、未来を考えること。どちらが多い？",
     options:[
-      { label:"意味は自分で作るしかない",   scores:{ idealism:+3, freedom:+1 } },
-      { label:"意味なんてないかもしれない", scores:{ nihilism:+3, rationality:+1 } },
-      { label:"小さな意味なら、至る所にある", scores:{ optimism:+3, idealism:+2, emotion:+1 } },
-      { label:"考えすぎることで見失う気がする", scores:{ realism:+2, stability:+2 } },
+      { label:"過去の方が多い。記憶が今もリアルで",      scores:{ emotion:+3, romanticism:+2, nihilism:+1 } },
+      { label:"未来の方が多い。今より先に希望がある",    scores:{ idealism:+3, optimism:+2, freedom:+1 } },
+      { label:"どちらも同じくらい。今が一番不安",        scores:{ realism:+2, stability:+1, emotion:+1 } },
+      { label:"どちらも見ないようにしている",            scores:{ nihilism:+3, loneliness:+2, stability:-1 } },
     ] },
-  { id:"q4", text:"感情と論理、どちらを信じる？",
+  { id:"q4", text:"「孤独」って、あなたにとって何？",
     options:[
-      { label:"感情の方が正直だと思う",     scores:{ emotion:+3, sensitivity:+2, romanticism:+1 } },
-      { label:"論理の方が信頼できる",       scores:{ logic:+3, rationality:+2 } },
-      { label:"どちらも大切、使い分けている", scores:{ realism:+2, rationality:+1, stability:+1 } },
-      { label:"感情を論理で分析してしまう", scores:{ logic:+2, emotion:+1, curiosity:+2 } },
+      { label:"正直に言えば、居心地がいい",             scores:{ loneliness:+3, freedom:+2, sensitivity:+1 } },
+      { label:"慣れてしまったもの",                     scores:{ loneliness:+2, nihilism:+2, realism:+1 } },
+      { label:"苦手だ。できれば誰かといたい",           scores:{ community:+3, emotion:+2, optimism:+1 } },
+      { label:"選んでいるのか、なっているのかわからない",scores:{ nihilism:+2, loneliness:+2, curiosity:+2 } },
     ] },
-  { id:"q5", text:"深夜、ひとりでいるとき",
+  { id:"q5", text:"眠れない夜、あなたは何をしてる？",
     options:[
-      { label:"考えすぎて眠れなくなる",     scores:{ loneliness:+2, nihilism:+1, curiosity:+2 } },
-      { label:"誰かと話したくなる",         scores:{ community:+3, emotion:+2 } },
-      { label:"一番自分らしくいられる",     scores:{ loneliness:+2, freedom:+2, sensitivity:+1 } },
-      { label:"早く寝ようとする",           scores:{ stability:+3, optimism:+1 } },
+      { label:"何かを考え続けている",                   scores:{ loneliness:+2, nihilism:+1, curiosity:+3 } },
+      { label:"誰かに連絡してみたりする",               scores:{ community:+3, emotion:+2 } },
+      { label:"音楽か動画で気を紛らわせる",             scores:{ sensitivity:+2, stability:+2, optimism:+1 } },
+      { label:"眠れない自分を、ただ見ている",           scores:{ loneliness:+3, nihilism:+2, freedom:+1 } },
     ] },
 ];
+
 
 // ══════════════════════════════════════════════════════════════
 //  DEEP MODE 質問ステージ（5テーマ×2〜3問＝計12問＋AI追質問）
@@ -1104,10 +1105,10 @@ const GLOBAL_CSS = `
     --f-serif:  'Cormorant Garamond', 'Noto Serif JP', Georgia, serif;
     --f-jp:     'Noto Serif JP', 'Georgia', serif;
     --f-mono:   'Space Mono', 'Courier New', monospace;
-    --c-bg:     #090b10;
-    --c-surface:#0f1219;
-    --c-border: rgba(255,255,255,0.065);
-    --c-border2:rgba(255,255,255,0.04);
+    --c-bg:     #050816;
+    --c-surface:#0a0f1e;
+    --c-border: rgba(255,255,255,0.055);
+    --c-border2:rgba(255,255,255,0.035);
     --c-text:   rgba(218,222,235,0.92);
     --c-muted:  rgba(130,145,175,0.65);
     --c-dim:    rgba(100,115,145,0.45);
@@ -1139,6 +1140,86 @@ const GLOBAL_CSS = `
     0%,100%{ box-shadow:0 0 16px rgba(100,160,210,.6),0 0 32px rgba(100,160,210,.25); }
     50%    { box-shadow:0 0 26px rgba(100,160,210,.9),0 0 50px rgba(100,160,210,.4); }
   }
+
+  /* ══════════════════════════════════════════════
+     🌧 雨アニメーション（深夜都市演出）
+  ══════════════════════════════════════════════ */
+
+  /* 雨粒 — CSS animationのみ・GPU負荷最小 */
+  @keyframes rainFall {
+    0%   { transform: translateY(-10vh) translateX(0); opacity: 0; }
+    5%   { opacity: 1; }
+    95%  { opacity: 0.7; }
+    100% { transform: translateY(110vh) translateX(-8vw); opacity: 0; }
+  }
+  @keyframes rainFallB {
+    0%   { transform: translateY(-10vh) translateX(0); opacity: 0; }
+    5%   { opacity: 0.5; }
+    100% { transform: translateY(110vh) translateX(-5vw); opacity: 0; }
+  }
+  /* ネオングロー呼吸 */
+  @keyframes neonBreath {
+    0%,100%{ opacity:0.35; filter:blur(60px); }
+    50%    { opacity:0.55; filter:blur(72px); }
+  }
+  @keyframes neonBreathB {
+    0%,100%{ opacity:0.22; filter:blur(80px); }
+    40%    { opacity:0.38; filter:blur(88px); }
+  }
+  /* ガラス水滴 */
+  @keyframes dropSlide {
+    0%   { transform: translateY(0) scaleY(1); opacity: 0; }
+    10%  { opacity: 0.6; }
+    80%  { transform: translateY(180px) scaleY(2.2); opacity: 0.3; }
+    100% { transform: translateY(200px) scaleY(0.8); opacity: 0; }
+  }
+  /* 深夜モード特殊グロー */
+  @keyframes midnightPulse {
+    0%,100%{ box-shadow:0 0 30px rgba(100,60,220,0.15), 0 0 60px rgba(60,100,220,0.08); }
+    50%    { box-shadow:0 0 50px rgba(100,60,220,0.28), 0 0 100px rgba(60,100,220,0.14); }
+  }
+
+  /* 雨コンテナ */
+  .rain-container {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  /* 個別雨粒 */
+  .rain-drop {
+    position: absolute; top: 0;
+    width: 1px; background: linear-gradient(180deg, transparent, rgba(140,180,240,0.55), transparent);
+    border-radius: 1px;
+  }
+  /* ネオングロー背景 */
+  .neon-bg-purple {
+    position: fixed; pointer-events: none; z-index: 0; border-radius: 50%;
+    background: radial-gradient(circle, rgba(100,40,220,0.45) 0%, rgba(60,0,180,0.25) 40%, transparent 70%);
+    animation: neonBreath 12s ease-in-out infinite;
+  }
+  .neon-bg-blue {
+    position: fixed; pointer-events: none; z-index: 0; border-radius: 50%;
+    background: radial-gradient(circle, rgba(30,80,220,0.4) 0%, rgba(10,40,160,0.2) 40%, transparent 70%);
+    animation: neonBreathB 18s ease-in-out 3s infinite;
+  }
+  .neon-bg-cyan {
+    position: fixed; pointer-events: none; z-index: 0; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,160,220,0.25) 0%, rgba(0,80,160,0.12) 50%, transparent 70%);
+    animation: neonBreath 22s ease-in-out 8s infinite;
+  }
+  /* ガラス水滴 */
+  .glass-drop {
+    position: absolute; width: 2px; border-radius: 999px;
+    background: linear-gradient(180deg, rgba(160,200,255,0.5), rgba(100,160,240,0.2), transparent);
+  }
+  /* 深夜モードバナー */
+  .midnight-banner {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(80,40,180,0.15);
+    border: 1px solid rgba(120,60,220,0.3);
+    animation: midnightPulse 4s ease-in-out infinite;
+  }
+
 
   /* ══════════════════════════════════════════════
      ホーム専用エフェクト
@@ -2444,6 +2525,117 @@ const GLOBAL_CSS = `
 const DISCLAIMER = "この分析はAIによる傾向の推定であり、実際の思想・信条を断定するものではありません。エンターテイメント・自己探索のためのツールです。";
 
 // 動的グローオーブ
+// ───────────────────────────────────────────────────────────────
+//  🌧 RainScene — 深夜都市演出（雨・ネオン・ガラス水滴）
+//  CSS animation のみ・requestAnimationFrame 不使用でパフォーマンス優先
+// ───────────────────────────────────────────────────────────────
+
+// 雨粒データ（staticで再レンダーしない）
+const RAIN_DROPS = Array.from({ length: 38 }, (_, i) => ({
+  id: i,
+  left: `${Math.random() * 100}%`,
+  height: `${40 + Math.random() * 80}px`,
+  duration: `${0.6 + Math.random() * 0.8}s`,
+  delay: `${Math.random() * 3}s`,
+  opacity: 0.15 + Math.random() * 0.35,
+  type: i % 3, // 0=落下A, 1=落下B, 2=細い
+}));
+
+// ガラス水滴データ
+const GLASS_DROPS = Array.from({ length: 12 }, (_, i) => ({
+  id: i,
+  left: `${5 + Math.random() * 90}%`,
+  height: `${12 + Math.random() * 40}px`,
+  duration: `${3 + Math.random() * 5}s`,
+  delay: `${Math.random() * 8}s`,
+}));
+
+function RainScene({ isMidnight }) {
+  return (
+    <>
+      {/* ネオングロー — 紫 */}
+      <div className="neon-bg-purple" style={{
+        width: "70vw", height: "60vh",
+        left: "-15vw", top: "-10vh",
+        opacity: isMidnight ? 1 : 0.6,
+      }} />
+      {/* ネオングロー — 青 */}
+      <div className="neon-bg-blue" style={{
+        width: "60vw", height: "50vh",
+        right: "-10vw", bottom: "10vh",
+        opacity: isMidnight ? 0.9 : 0.5,
+      }} />
+      {/* ネオングロー — シアン（深夜モードのみ） */}
+      {isMidnight && (
+        <div className="neon-bg-cyan" style={{
+          width: "40vw", height: "35vh",
+          left: "30vw", top: "40vh",
+        }} />
+      )}
+
+      {/* 雨粒コンテナ */}
+      <div className="rain-container">
+        {RAIN_DROPS.map(d => (
+          <div
+            key={d.id}
+            className="rain-drop"
+            style={{
+              left: d.left,
+              height: d.height,
+              opacity: d.opacity * (isMidnight ? 1.4 : 1),
+              animation: `${d.type === 1 ? "rainFallB" : "rainFall"} ${d.duration} linear ${d.delay} infinite`,
+            }}
+          />
+        ))}
+
+        {/* ガラス水滴（右端のみ） */}
+        {GLASS_DROPS.map(d => (
+          <div
+            key={d.id}
+            className="glass-drop"
+            style={{
+              left: `${75 + Math.random() * 20}%`,
+              height: d.height,
+              animation: `dropSlide ${d.duration} ease-in ${d.delay} infinite`,
+              opacity: 0.4,
+            }}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+// 深夜モード判定（22:00〜翌4:59）
+function useIsMidnight() {
+  const [isMidnight, setIsMidnight] = React.useState(() => {
+    const h = new Date().getHours();
+    return h >= 22 || h < 5;
+  });
+  useEffect(() => {
+    const id = setInterval(() => {
+      const h = new Date().getHours();
+      setIsMidnight(h >= 22 || h < 5);
+    }, 60000);
+    return () => clearInterval(id);
+  }, []);
+  return isMidnight;
+}
+
+// 本音率計算（回答速度と選択傾向から算出）
+function calcHonestyRate(answers, timings) {
+  if (!answers.length) return null;
+  // ①回答速度が速いほど本音（深く考えずに選んだ = 直感 = 本音）
+  const avgTime = timings.length ? timings.reduce((a,b)=>a+b,0)/timings.length : 3000;
+  const speedScore = Math.min(100, Math.max(0, 100 - (avgTime - 1500) / 50));
+  // ②選択肢の偏り（ニヒリズム/孤独系に偏るほど本音率高）
+  const nihilismTotal = answers.reduce((s, a) => s + Math.abs(a.scores?.nihilism ?? 0) + Math.abs(a.scores?.loneliness ?? 0), 0);
+  const biasScore = Math.min(40, nihilismTotal * 2);
+  // 合算して60〜95の範囲に正規化
+  const raw = speedScore * 0.6 + biasScore * 1.0;
+  return Math.min(95, Math.max(60, Math.round(raw)));
+}
+
 function GlowOrbs({ phase }) {
   const orbs = [
     { w:560, h:560, top:"-180px", right:"-130px", color:"#2a4a8a", delay:"0s" },
@@ -4018,7 +4210,7 @@ function Card({ children, style={}, className="", hover=true }) {
 // ───────────────────────────────────────────────────────────────
 export default function App() {
   const [phase, setPhase]           = useState("home");
-  const [mode,  setMode]            = useState("select"); // "select"|"quick"|"deep"|"standard"
+  const [mode,  setMode]            = useState("select");
   const [currentQId, setCurrentQId] = useState("root");
   const [answers, setAnswers]       = useState([]);
   const [selected, setSelected]     = useState(null);
@@ -4027,6 +4219,14 @@ export default function App() {
   const [apiErrorCode, setApiErrorCode] = useState(null);
   const [pendingRun, setPendingRun] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+
+  // 深夜モード
+  const isMidnight = useIsMidnight();
+
+  // 本音率計測用（質問表示時刻を記録）
+  const [answerTimings, setAnswerTimings] = useState([]);
+  const questionStartRef = useRef(Date.now());
+  const [honestyRate, setHonestyRate] = useState(null);
 
   // 会話UI用
   const [showReaction, setShowReaction] = useState(false);
@@ -4119,6 +4319,9 @@ export default function App() {
   }, [selected, currentQ, currentQId, answers]);
 
   const runDiagnosis = useCallback(async (allAnswers) => {
+    // 本音率を計算して保存
+    const hr = calcHonestyRate(allAnswers, answerTimings);
+    setHonestyRate(hr);
     setPhase("thinking");
     setApiError(null);
     setApiErrorCode(null);
@@ -4184,6 +4387,8 @@ export default function App() {
     setSelected(null); setResult(null); setApiError(null); setApiErrorCode(null);
     setShowReaction(false); setShowTyping(false); setShowQuestion(true);
     setQKey(0); setPendingReaction(null); setRetryCount(0);
+    setAnswerTimings([]); setHonestyRate(null);
+    questionStartRef.current = Date.now();
   }, []);
 
   // リアクション文（pendingReactionはstate経由で保持する）
@@ -4200,6 +4405,9 @@ export default function App() {
     <div style={{ minHeight:"100vh", background:"var(--c-bg)", color:"var(--c-text)",
       fontFamily:"var(--f-jp)", position:"relative" }}>
       <style>{GLOBAL_CSS}</style>
+
+      {/* 🌧 雨・ネオン背景演出（常時表示） */}
+      <RainScene isMidnight={isMidnight} />
 
       {/* 動的背景グロー */}
       <GlowOrbs phase={phase} />
@@ -4327,10 +4535,24 @@ export default function App() {
               {/* ── 説明文 ── */}
               <p style={{ fontFamily:"var(--f-jp)", color:"rgba(145,160,192,0.75)", fontSize:14,
                 lineHeight:2.05, maxWidth:360, margin:"0 auto 36px", fontWeight:200 }}>
-                8つの問いに答えるだけ。<br />
-                思想スコアを計算し、あなたの価値観の構造を<br />
-                AIが文学的に可視化します。
+                {isMidnight
+                  ? <>深夜にしか出てこない言葉がある。<br />今夜、少し正直になってみる。</>
+                  : <>8つの問いに答えるだけ。<br />あなたが夜に何者であるか、静かに照らす。</>
+                }
               </p>
+
+              {/* 深夜モードバナー */}
+              {isMidnight && (
+                <div style={{ marginBottom:24, display:"flex", justifyContent:"center" }}>
+                  <div className="midnight-banner">
+                    <span style={{ fontSize:10 }}>🌙</span>
+                    <span style={{ fontFamily:"var(--f-mono)", fontSize:9,
+                      color:"rgba(160,120,255,0.9)", letterSpacing:"0.2em" }}>
+                      MIDNIGHT MODE · 深夜限定演出 ON
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* ── 解析項目パネル ── */}
               <div className="home-card" style={{
@@ -4399,7 +4621,10 @@ export default function App() {
               </p>
 
               {/* ── 起動ボタン → モード選択へ ── */}
-              <button className="btn-start" onClick={() => setPhase("mode-select")}>
+              <button className="btn-start" onClick={() => {
+                questionStartRef.current = Date.now();
+                setPhase("mode-select");
+              }}>
                 <span style={{ fontFamily:"var(--f-mono)", fontSize:9,
                   color:"rgba(100,155,210,0.6)", letterSpacing:"0.15em" }}>▶</span>
                 診断をはじめる
@@ -4760,6 +4985,54 @@ export default function App() {
                     </span>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* 深夜モード演出 + 本音率 */}
+            {(isMidnight || honestyRate !== null) && (
+              <div className="result-card-stagger" style={{ marginBottom:16, display:"flex", gap:10, flexWrap:"wrap" }}>
+                {isMidnight && (
+                  <div style={{
+                    flex:1, minWidth:140, padding:"14px 18px",
+                    background:"rgba(80,40,180,0.08)", border:"1px solid rgba(120,60,220,0.22)",
+                    borderRadius:14, animation:"midnightPulse 4s ease-in-out infinite",
+                  }}>
+                    <div style={{ fontFamily:"var(--f-mono)", fontSize:8, color:"rgba(130,80,220,0.7)",
+                      letterSpacing:"0.2em", marginBottom:6 }}>MIDNIGHT MODE</div>
+                    <div style={{ fontFamily:"var(--f-jp)", fontSize:12, color:"rgba(180,150,255,0.85)",
+                      fontWeight:300, lineHeight:1.7 }}>
+                      深夜に開いたあなたへ。<br />今夜の診断は、少し正直だったかもしれない。
+                    </div>
+                  </div>
+                )}
+                {honestyRate !== null && (
+                  <div style={{
+                    flex:1, minWidth:140, padding:"14px 18px",
+                    background:"rgba(40,80,140,0.08)", border:"1px solid rgba(70,120,200,0.2)",
+                    borderRadius:14,
+                  }}>
+                    <div style={{ fontFamily:"var(--f-mono)", fontSize:8, color:"rgba(80,130,200,0.7)",
+                      letterSpacing:"0.2em", marginBottom:6 }}>HONESTY RATE</div>
+                    <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:6 }}>
+                      <span style={{ fontFamily:"var(--f-serif)", fontStyle:"italic",
+                        fontSize:32, color:result.typeColor, fontWeight:300 }}>
+                        {honestyRate}%
+                      </span>
+                      <span style={{ fontFamily:"var(--f-mono)", fontSize:8,
+                        color:"rgba(80,120,180,0.55)", letterSpacing:"0.1em" }}>本音率</span>
+                    </div>
+                    <div style={{ height:3, background:"rgba(255,255,255,0.05)", borderRadius:999, overflow:"hidden" }}>
+                      <div style={{ height:"100%", width:`${honestyRate}%`,
+                        background:`linear-gradient(90deg, ${result.typeColor}88, ${result.typeColor})`,
+                        borderRadius:999, transition:"width 1s ease" }} />
+                    </div>
+                    <div style={{ fontFamily:"var(--f-jp)", fontSize:11, color:"rgba(120,150,200,0.6)",
+                      marginTop:6, fontWeight:200 }}>
+                      {honestyRate >= 85 ? "かなり直感で答えていた" :
+                       honestyRate >= 72 ? "本音に近い回答傾向" : "少し考えながら答えていた"}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
