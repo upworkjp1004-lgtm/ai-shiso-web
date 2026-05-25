@@ -189,30 +189,40 @@ const QUESTIONS = Object.values(Q_TREE);
 //  QUICK MODE 質問セット（5問・二択・30秒〜2分）
 // ══════════════════════════════════════════════════════════════
 const QUICK_QUESTIONS = [
-  { id:"q1", text:"あなたにとって、自由とは？",
+  { id:"q1", text:"あなたにとって、「自由」とは？",
     options:[
-      { label:"何ものにも縛られないこと",  scores:{ freedom:+5, stability:-2 } },
-      { label:"安心できる場所があること",  scores:{ stability:+5, freedom:-2 } },
+      { label:"何ものにも縛られないこと",   scores:{ freedom:+3, stability:-2, curiosity:+1 } },
+      { label:"安心できる場所があること",   scores:{ stability:+3, community:+2, optimism:+1 } },
+      { label:"自分で選べること",           scores:{ freedom:+2, idealism:+2, rationality:+1 } },
+      { label:"どちらも、時と場合による",   scores:{ realism:+3, rationality:+1 } },
     ] },
   { id:"q2", text:"一人でいるとき、あなたは？",
     options:[
-      { label:"静かで、心地いい",          scores:{ loneliness:+4, community:-2 } },
-      { label:"少し寂しい、もの足りない",   scores:{ community:+4, loneliness:-2 } },
+      { label:"静かで、心地いい",           scores:{ loneliness:+3, sensitivity:+1 } },
+      { label:"少し寂しい、もの足りない",   scores:{ community:+3, emotion:+2 } },
+      { label:"思考が深くなる気がする",     scores:{ loneliness:+2, rationality:+2, curiosity:+1 } },
+      { label:"創作や趣味に没頭できる",     scores:{ freedom:+2, optimism:+1, sensitivity:+2 } },
     ] },
   { id:"q3", text:"「意味」について、どちらが近い？",
     options:[
-      { label:"意味は自分で作るしかない",   scores:{ idealism:+3, nihilism:+2 } },
-      { label:"意味なんてないかもしれない", scores:{ nihilism:+5, idealism:-1 } },
+      { label:"意味は自分で作るしかない",   scores:{ idealism:+3, freedom:+1 } },
+      { label:"意味なんてないかもしれない", scores:{ nihilism:+3, rationality:+1 } },
+      { label:"小さな意味なら、至る所にある", scores:{ optimism:+3, idealism:+2, emotion:+1 } },
+      { label:"考えすぎることで見失う気がする", scores:{ realism:+2, stability:+2 } },
     ] },
   { id:"q4", text:"感情と論理、どちらを信じる？",
     options:[
-      { label:"感情の方が正直だと思う",     scores:{ emotion:+5, logic:-2 } },
-      { label:"論理の方が信頼できる",       scores:{ logic:+5, emotion:-2 } },
+      { label:"感情の方が正直だと思う",     scores:{ emotion:+3, sensitivity:+2, romanticism:+1 } },
+      { label:"論理の方が信頼できる",       scores:{ logic:+3, rationality:+2 } },
+      { label:"どちらも大切、使い分けている", scores:{ realism:+2, rationality:+1, stability:+1 } },
+      { label:"感情を論理で分析してしまう", scores:{ logic:+2, emotion:+1, curiosity:+2 } },
     ] },
   { id:"q5", text:"深夜、ひとりでいるとき",
     options:[
-      { label:"考えすぎて眠れなくなる",     scores:{ loneliness:+3, nihilism:+2, idealism:+1 } },
-      { label:"誰かと話したくなる",         scores:{ community:+4, emotion:+2 } },
+      { label:"考えすぎて眠れなくなる",     scores:{ loneliness:+2, nihilism:+1, curiosity:+2 } },
+      { label:"誰かと話したくなる",         scores:{ community:+3, emotion:+2 } },
+      { label:"一番自分らしくいられる",     scores:{ loneliness:+2, freedom:+2, sensitivity:+1 } },
+      { label:"早く寝ようとする",           scores:{ stability:+3, optimism:+1 } },
     ] },
 ];
 
@@ -540,72 +550,423 @@ const PHILOSOPHERS = [
 // ── resolvePhilosophers: スコアから上位N件を返す（拡張版）
 // 上位3件を返す（モックアップの3人グリッドに対応）
 
+// ══════════════════════════════════════════════════════════════
+//  THOUGHT_TYPES — 20タイプ定義
+//  スコア: 正規化後 0-100 スケール（50が中央値）
+//  分岐ロジック: 複数軸スコアの組み合わせ、スコア差による優先度
+// ══════════════════════════════════════════════════════════════
 const THOUGHT_TYPES = [
-  { id:"solitary_nihilist",    name:"孤独な虚無論者",        color:"#7a8bb8",
-    glow:["rgba(40,45,120,0.7)","rgba(60,30,110,0.5)","rgba(20,50,100,0.35)"],
-    xText:"「虚無を知っている人間は、それでも朝に目を覚ます。」— #AI思想チェッカー",
-    cond:(t) => t.nihilism>=8 && t.loneliness>=6 },
 
-  { id:"free_existentialist",  name:"根のない自由主義者",    color:"#6ab0e8",
-    glow:["rgba(20,70,150,0.65)","rgba(15,55,130,0.45)","rgba(10,80,120,0.3)"],
-    xText:"「自由でいたい人間ほど、檻の形を正確に知っている。」— #AI思想チェッカー",
-    cond:(t) => t.freedom>=8 && t.stability<=2 },
+  // ── 明るめ / 穏やか系（偏りを補正）
+  {
+    id:"quiet_idealist", name:"静かな理想家",
+    color:"#7ab8d8", sub:"世界はもう少しよくなれると、静かに信じている",
+    glow:["rgba(30,80,150,0.55)","rgba(20,70,130,0.4)","rgba(15,60,120,0.25)"],
+    xText:"「希望を声にしないのは、それを大切にしているからだ。」— #AI思想チェッカー",
+    cond:(t) => t.idealism>=62 && t.emotion>=55 && t.community>=52,
+  },
+  {
+    id:"gentle_optimist", name:"小さな楽観主義者",
+    color:"#78c890", sub:"悪いことの中にも、見逃せない小ささの良さがある",
+    glow:["rgba(20,100,60,0.5)","rgba(15,90,50,0.35)","rgba(10,80,40,0.22)"],
+    xText:"「絶望と楽観の間の、狭い場所に立っている。」— #AI思想チェッカー",
+    cond:(t) => t.idealism>=58 && t.realism>=55 && t.nihilism<=48,
+  },
+  {
+    id:"calm_mediator", name:"穏やかな調停者",
+    color:"#82c4a0", sub:"正しさより、つながることを選ぶ",
+    glow:["rgba(20,95,65,0.5)","rgba(15,85,55,0.38)","rgba(12,75,48,0.24)"],
+    xText:"「対立の間に立つことが、最も誠実な場所だと思っている。」— #AI思想チェッカー",
+    cond:(t) => t.community>=63 && t.emotion>=58 && t.nihilism<=50,
+  },
+  {
+    id:"soft_realist", name:"やわらかな現実主義者",
+    color:"#c8a870", sub:"夢は持ちながら、足は地面にある",
+    glow:["rgba(110,75,20,0.5)","rgba(100,65,15,0.38)","rgba(90,60,18,0.24)"],
+    xText:"「現実的でいることは、諦めることではない。」— #AI思想チェッカー",
+    cond:(t) => t.realism>=62 && t.stability>=55 && t.community>=50,
+  },
+  {
+    id:"tender_wanderer", name:"余白を愛する人",
+    color:"#b8a8d8", sub:"決めないことが、時に最も誠実な答えになる",
+    glow:["rgba(80,60,150,0.5)","rgba(70,50,135,0.38)","rgba(60,42,120,0.24)"],
+    xText:"「余白の中に、まだ言葉になっていない何かがある。」— #AI思想チェッカー",
+    cond:(t) => t.romanticism>=60 && t.emotion>=58 && t.freedom>=52 && t.nihilism<=52,
+  },
 
-  { id:"silent_observer",      name:"沈黙の観測者",          color:"#5aaa9a",
-    glow:["rgba(15,90,80,0.6)","rgba(20,80,90,0.45)","rgba(10,70,85,0.3)"],
-    xText:"「言葉にしないことで、守られているものがある。」— #AI思想チェッカー",
-    cond:(t) => t.logic>=8 && t.loneliness>=5 && t.emotion<=3 },
+  // ── 思索・観察系
+  {
+    id:"night_observer", name:"夜の観察者",
+    color:"#8a9ab8", sub:"見ることで、参加せずに関わっている",
+    glow:["rgba(40,55,110,0.6)","rgba(55,40,100,0.45)","rgba(30,48,90,0.28)"],
+    xText:"「観察者であることは、距離ではなく深さの問題だ。」— #AI思想チェッカー",
+    cond:(t) => t.logic>=63 && t.loneliness>=58 && t.emotion<=50,
+  },
+  {
+    id:"deep_thinker", name:"眠れない思索家",
+    color:"#9888c8", sub:"答えが出ない問いほど、手放せなくなる",
+    glow:["rgba(70,45,145,0.6)","rgba(60,35,130,0.45)","rgba(50,28,115,0.28)"],
+    xText:"「眠れない夜は、思考が最も澄んでいる。」— #AI思想チェッカー",
+    cond:(t) => t.logic>=60 && t.idealism>=58 && t.stability<=50,
+  },
+  {
+    id:"word_seeker", name:"言葉を探す人",
+    color:"#a8b8d0", sub:"感じていることの、正確な言葉を探し続けている",
+    glow:["rgba(50,75,130,0.55)","rgba(40,65,115,0.4)","rgba(32,55,100,0.26)"],
+    xText:"「言葉にならないものを、言葉にしようとすることが、私のすることだ。」— #AI思想チェッカー",
+    cond:(t) => t.emotion>=60 && t.logic>=58 && t.loneliness>=52,
+  },
+  {
+    id:"lone_explorer", name:"孤独な探求者",
+    color:"#7898c8", sub:"答えより、問い続けることに意味を見出している",
+    glow:["rgba(25,65,140,0.6)","rgba(20,55,125,0.45)","rgba(15,48,110,0.28)"],
+    xText:"「探すことをやめた瞬間に、何かが終わる気がしている。」— #AI思想チェッカー",
+    cond:(t) => t.idealism>=60 && t.loneliness>=60 && t.freedom>=55,
+  },
+  {
+    id:"horizon_watcher", name:"遠くを見ている人",
+    color:"#88aac8", sub:"今ここにいながら、どこか遠くを向いている",
+    glow:["rgba(30,70,130,0.55)","rgba(22,60,115,0.4)","rgba(15,52,100,0.26)"],
+    xText:"「遠くを見る目には、今が映っている。」— #AI思想チェッカー",
+    cond:(t) => t.romanticism>=62 && t.idealism>=58 && t.community<=50,
+  },
 
-  { id:"night_romanticist",    name:"夜の実存主義者",        color:"#c87ac8",
-    glow:["rgba(100,30,130,0.65)","rgba(80,20,120,0.5)","rgba(60,15,100,0.35)"],
-    xText:"「現実主義者でいるには、少し世界を愛しすぎてしまった。」— #AI思想チェッカー",
-    cond:(t) => t.romanticism>=7 && t.loneliness>=5 },
+  // ── 自由・独立系
+  {
+    id:"quiet_rebel", name:"静かな革命家",
+    color:"#c87888", sub:"声を上げないが、信じていることは変わらない",
+    glow:["rgba(130,35,55,0.58)","rgba(115,28,45,0.43)","rgba(100,22,38,0.27)"],
+    xText:"「静かに、しかし確かに、自分の方向へ進んでいる。」— #AI思想チェッカー",
+    cond:(t) => t.freedom>=65 && t.idealism>=60 && t.community<=48,
+  },
+  {
+    id:"free_rebel", name:"自由な反抗者",
+    color:"#d87858", sub:"型にはまることを、どこかで恐れている",
+    glow:["rgba(140,55,20,0.58)","rgba(125,45,15,0.43)","rgba(110,38,12,0.27)"],
+    xText:"「反抗は目的ではない。ただ、従えない何かがあるだけだ。」— #AI思想チェッカー",
+    cond:(t) => t.freedom>=68 && t.stability<=45 && t.nihilism<=55,
+  },
+  {
+    id:"lone_sailor", name:"ひとりの航海者",
+    color:"#5898c8", sub:"どこへ向かうかより、どう航るかを考えている",
+    glow:["rgba(18,68,145,0.58)","rgba(12,58,128,0.43)","rgba(8,48,112,0.27)"],
+    xText:"「港を出た先に、何があるかは誰も知らない。」— #AI思想チェッカー",
+    cond:(t) => t.freedom>=62 && t.loneliness>=62 && t.community<=48,
+  },
 
-  { id:"gentle_nihilist",      name:"やさしいニヒリスト",    color:"#c89858",
+  // ── 感情・関係系
+  {
+    id:"emotion_collector", name:"感情の収集家",
+    color:"#d888a8", sub:"喜びも悲しみも、全部大切にとっておきたい",
+    glow:["rgba(150,40,80,0.55)","rgba(132,32,68,0.4)","rgba(115,25,58,0.26)"],
+    xText:"「感じることをやめたら、私は何を持っているだろう。」— #AI思想チェッカー",
+    cond:(t) => t.emotion>=65 && t.romanticism>=58 && t.nihilism<=50,
+  },
+  {
+    id:"deep_romanticist", name:"深夜のロマン主義者",
+    color:"#c878d8", sub:"感情の深さを、理性よりも信頼している",
+    glow:["rgba(110,35,145,0.6)","rgba(95,28,128,0.45)","rgba(80,22,112,0.28)"],
+    xText:"「深夜だけが、本当のことを語る。」— #AI思想チェッカー",
+    cond:(t) => t.romanticism>=65 && t.emotion>=62 && t.loneliness>=55,
+  },
+  {
+    id:"boundary_walker", name:"境界を歩く人",
+    color:"#98a8b8", sub:"どこにも属さず、どこにもいられる",
+    glow:["rgba(50,65,115,0.5)","rgba(42,55,100,0.38)","rgba(34,46,88,0.24)"],
+    xText:"「内側でも外側でもない場所が、最も自分らしい。」— #AI思想チェッカー",
+    cond:(t) => Math.abs(t.freedom - t.stability) <= 12 && Math.abs(t.community - t.loneliness) <= 15,
+  },
+  {
+    id:"meaning_weaver", name:"意味を編む人",
+    color:"#a8c0a8", sub:"日常の中に、小さな意味を見つけ続けている",
+    glow:["rgba(40,90,55,0.5)","rgba(32,80,46,0.38)","rgba(25,70,38,0.24)"],
+    xText:"「意味は見つけるものではなく、作るものだと思っている。」— #AI思想チェッカー",
+    cond:(t) => t.idealism>=58 && t.realism>=55 && t.emotion>=55 && t.community>=50,
+  },
+
+  // ── ニヒル系（従来タイプを閾値修正）
+  {
+    id:"gentle_nihilist", name:"やさしいニヒリスト",
+    color:"#c89858", sub:"虚無を知りながら、それでも誰かに優しくできる",
     glow:["rgba(100,60,20,0.6)","rgba(90,50,15,0.45)","rgba(80,55,20,0.3)"],
     xText:"「虚無と優しさは、同じ場所から来ているかもしれない。」— #AI思想チェッカー",
-    cond:(t) => t.nihilism>=6 && t.emotion>=5 },
-
-  { id:"idealistic_wanderer",  name:"理想を手放せない漂流者", color:"#9878e8",
-    glow:["rgba(60,30,150,0.65)","rgba(50,20,130,0.5)","rgba(40,25,110,0.35)"],
-    xText:"「理想主義者は、現実に傷つきながらも理想を手放せない。」— #AI思想チェッカー",
-    cond:(t) => t.idealism>=8 && t.realism<=3 },
-
-  { id:"logical_skeptic",      name:"冷静な懐疑論者",        color:"#4a9aab",
+    cond:(t) => t.nihilism>=60 && t.emotion>=55,
+  },
+  {
+    id:"solitary_nihilist", name:"孤独な虚無論者",
+    color:"#7a8bb8", sub:"意味の不在を知りながら、それでも問い続けている",
+    glow:["rgba(40,45,120,0.7)","rgba(60,30,110,0.5)","rgba(20,50,100,0.35)"],
+    xText:"「虚無を知っている人間は、それでも朝に目を覚ます。」— #AI思想チェッカー",
+    cond:(t) => t.nihilism>=65 && t.loneliness>=62,
+  },
+  {
+    id:"logical_skeptic", name:"冷静な懐疑論者",
+    color:"#4a9aab", sub:"疑うことで、最も誠実でいられると思っている",
     glow:["rgba(15,75,100,0.6)","rgba(10,65,90,0.45)","rgba(8,55,80,0.3)"],
     xText:"「疑うことは、信じることより誠実かもしれない。」— #AI思想チェッカー",
-    cond:(t) => t.logic>=7 && t.nihilism>=4 && t.romanticism<=4 },
+    cond:(t) => t.logic>=65 && t.nihilism>=55 && t.romanticism<=50,
+  },
 
-  { id:"communal_realist",     name:"静かな共同体主義者",    color:"#68b878",
-    glow:["rgba(20,80,40,0.6)","rgba(15,70,35,0.45)","rgba(10,60,30,0.3)"],
-    xText:"「人の中にいることで、ようやく自分の形が見える。」— #AI思想チェッカー",
-    cond:(t) => t.community>=8 && t.freedom<=3 },
-
-  { id:"border_dweller",       name:"境界の住人",            color:"#8898b8",
+  // ── デフォルト（全条件に当てはまらない場合）
+  {
+    id:"border_dweller", name:"境界の住人",
+    color:"#8898b8", sub:"どこにでも、どこにもいない。それが自分の場所",
     glow:["rgba(40,55,110,0.55)","rgba(55,35,100,0.4)","rgba(30,50,90,0.28)"],
     xText:"「どちらでもなく、どちらでもある。それが私の場所だ。」— #AI思想チェッカー",
-    cond:(_) => true },
+    cond:(_) => true,
+  },
 ];
 
+// ── タイプ別フォールバック分析文
 const FALLBACK_BY_TYPE = {
-  solitary_nihilist:   { definition:"意味の不在を知りながら、それでも何かを探し続けるという矛盾した構造を持つ人間の思想。", contradiction:"何も信じていないと言いながら、信じられるものを探し続けているという逆説がある。", solitude:"孤独には慣れているが、慣れたこととそれを望んだことは別の話だと、どこかで知っている。", distance:"人の輪に入れないのではなく、入る意味を見つけられないでいる状態が続いている。", quote:"虚無を知っている人間は、それでも朝に目を覚ます。" },
-  free_existentialist: { definition:"自由を最大の価値とするが、その自由の重さに気づいてもなお、手放せないでいる構造。", contradiction:"束縛から逃れたいという意志と、どこかに根を下ろしたいという衝動が、同時に存在している。", solitude:"一人でいる時の方が、自分の輪郭がはっきりする気がしている。", distance:"集団の中にいても、そこから少し浮いた位置から観察している自分がいる。", quote:"自由でいたい人間ほど、檻の形を正確に知っている。" },
-  silent_observer:     { definition:"感情より観察を、主張より沈黙を選ぶことで、世界との距離を保とうとする思想の構造。", contradiction:"冷静に見えて、その観察の奥に強い感情が眠っていることを、本人だけが知っている。", solitude:"孤独を嫌っているわけではない。ただ、一人でいる方が思考の精度が上がる。", distance:"人との関係を切るのではなく、一枚ガラスを挟んだままで関係を保っている。", quote:"言葉にしないことで、守られているものがある。" },
-  night_romanticist:   { definition:"現実を知りながらも理想を捨てられない、その亀裂の中に美しさを見出そうとする思想。", contradiction:"ロマンを信じていないと言いながら、それを否定しきれない瞬間が繰り返しやってくる。", solitude:"夜が静かな分だけ、考えが深くなっていく。それを孤独と呼ぶのかどうかは、まだわからない。", distance:"社会の速度についていけないのではなく、その速度に意味を感じていない。", quote:"現実主義者でいるには、少し世界を愛しすぎてしまった。" },
-  default:             { definition:"いくつかの思想的傾向が重なり合い、一つの軸では語れない複雑な構造を持つかもしれない。", contradiction:"自分の価値観を持ちながら、それが正しいかどうか問い続けているという構造がある。", solitude:"一人の時間と他者との時間、どちらが本当の自分に近いのか、まだ答えが出ていない。", distance:"社会との距離を意識しながら、それでも完全には切れないでいる。", quote:"問い続けることが、答えを持つことより誠実かもしれない。" },
+  quiet_idealist:    { definition:"世界はもう少し良くなれるという静かな確信が、思考の根底にある。声高ではなく、日々の選択の中に理想が宿っている。", contradiction:"理想を信じながら、現実に傷つく瞬間が繰り返しやってくる。それでも手放せないのは、信じることが自分の形だからだ。", solitude:"一人の時間は、理想を整える時間でもある。孤独を恐れていない。", distance:"社会とは少し違う速度で動いているが、それを孤立とは呼ばない。", quote:"希望を声にしないのは、それを大切にしているからだ。" },
+  gentle_optimist:   { definition:"悲観と楽観の間で、それでも小さな良さを見つけることをやめない。その繰り返しが、思想の骨格になっている。", contradiction:"楽観的に見えて、その裏に丁寧な現実認識がある。明るさは無知ではなく、選択だ。", solitude:"一人の時間に何かを補充して、また誰かのそばに戻る。", distance:"「まあいいか」が言えるのは、諦めではなく、全体を見る目があるからだ。", quote:"絶望と楽観の間の、狭い場所に立っている。" },
+  calm_mediator:     { definition:"正しさより、つながることを優先する。その選択が、時に自分を後回しにする。", contradiction:"他者のために動きながら、自分の感情が後回しになることに、静かに気づいている。", solitude:"一人でいるときは、誰かのことを考えている。それが自分の形だ。", distance:"対立の中心にいるより、橋の上にいることを選ぶ。", quote:"対立の間に立つことが、最も誠実な場所だと思っている。" },
+  soft_realist:      { definition:"現実を直視しながら、柔らかい夢を手放さない。その両立が、この思想の核心にある。", contradiction:"現実的に考えながら、それに収まりたくない衝動が同時に存在する。", solitude:"現実の中でも、想像の時間を確保することを大切にしている。", distance:"社会のルールを理解しながら、それに完全に従う必要はないと思っている。", quote:"現実的でいることは、諦めることではない。" },
+  tender_wanderer:   { definition:"決めないことを恐れず、余白の中に居場所を見つけている。その開放性が、思考の自由を保つ。", contradiction:"漂っているように見えて、内側には確固たる価値観がある。ただし、それを名付けたくない。", solitude:"ひとりでいることも、誰かといることも、どちらも自分の時間だと感じる。", distance:"カテゴリに収まることが苦手で、それを欠点とは思っていない。", quote:"余白の中に、まだ言葉になっていない何かがある。" },
+  night_observer:    { definition:"感情より観察を、主張より沈黙を選ぶことで、世界との距離を保とうとする思想の構造。", contradiction:"冷静に見えて、その観察の奥に強い感情が眠っていることを、本人だけが知っている。", solitude:"孤独を嫌っているわけではない。ただ、一人でいる方が思考の精度が上がる。", distance:"人との関係を切るのではなく、一枚ガラスを挟んだままで関係を保っている。", quote:"観察者であることは、距離ではなく深さの問題だ。" },
+  deep_thinker:      { definition:"答えが出ない問いほど手放せない。その思考の持続性が、この人の最も深い特徴だ。", contradiction:"考えすぎることへの疲れを知りながら、考えることをやめられない構造がある。", solitude:"夜が静かな分だけ、思考が深くなる。それを孤独とは呼ばない。", distance:"社会の会話のテンポより、自分の思考の速度の方が信頼できる。", quote:"眠れない夜は、思考が最も澄んでいる。" },
+  word_seeker:       { definition:"感じていることと、それを表す言葉の間の距離を、常に意識している思想の在り方。", contradiction:"言葉を探しているが、見つかった瞬間に何かが失われる気がして、また探し始める。", solitude:"誰かと話すより、一人で書いている時の方が、本当のことが出てくる。", distance:"社会の言葉が自分の感覚にフィットしないとき、静かに別の言葉を探している。", quote:"言葉にならないものを、言葉にしようとすることが、私のすることだ。" },
+  lone_explorer:     { definition:"答えを得ることよりも、問い続けることそのものに意味を見出している探求の構造。", contradiction:"探求は孤独を伴うが、その孤独の中にこそ、探求の純粋さがある。", solitude:"一人の時間は、探求の時間でもある。それは孤立ではなく、集中だ。", distance:"答えの出た問いより、まだ答えが出ない問いの方が、生きている感じがする。", quote:"探すことをやめた瞬間に、何かが終わる気がしている。" },
+  horizon_watcher:   { definition:"今ここにいながら、どこか遠くを向いている視線。その距離感が、思想の奥行きを作っている。", contradiction:"遠くを見ているようで、足元の小さなことにも敏感だ。その両方が本物だ。", solitude:"遠くを見るには、静けさが必要だ。それが自然に一人の時間を作る。", distance:"「今ここ」に完全に収まることができない。それは欠陥ではなく、視野の広さだ。", quote:"遠くを見る目には、今が映っている。" },
+  quiet_rebel:       { definition:"声を上げずに、しかし確かに自分の方向へ進んでいる。静かさの中に強さがある思想。", contradiction:"反抗したいわけではない。ただ、従えない何かがある。その区別を大切にしている。", solitude:"自分の信念を保つには、時に静かさが必要だ。", distance:"集団の動きと自分の確信がずれるとき、集団より確信を選ぶ。", quote:"静かに、しかし確かに、自分の方向へ進んでいる。" },
+  free_rebel:        { definition:"型にはまることを本能的に恐れる。その自由への欲求が、思考の推進力になっている。", contradiction:"自由でいたいが、自由の重さに気づいている。その矛盾の中で動いている。", solitude:"自由には、時に孤独が伴う。それを代償とは思っていない。", distance:"社会のレールより、自分の感覚の方を信頼している。", quote:"反抗は目的ではない。ただ、従えない何かがあるだけだ。" },
+  lone_sailor:       { definition:"目的地より航路を、到達より航海そのものを重視している。その過程志向が思想の核心だ。", contradiction:"どこへ行くかは決まっていないが、動き続けることへの確信は揺るがない。", solitude:"一人の航海が最も正直な時間だ。それを寂しいとは感じていない。", distance:"港にいることより、沖にいることの方が、自分らしい気がしている。", quote:"港を出た先に、何があるかは誰も知らない。" },
+  emotion_collector: { definition:"喜びも悲しみも、全部丁寧にとっておく。その感情の豊かさが、世界との接続点になっている。", contradiction:"感情を大切にするほど、傷つきやすくなる。それを知りながら、やめられない。", solitude:"一人のとき、感情の整理をする。それが必要な時間だ。", distance:"感情を持たない人よりも、感情を持ちすぎる自分の方が、正しい気がしている。", quote:"感じることをやめたら、私は何を持っているだろう。" },
+  deep_romanticist:  { definition:"感情の深さを理性より信頼している。深夜だけが、その感覚が正直に出てくる時間だ。", contradiction:"ロマンを信じていないと言いながら、否定しきれない瞬間が繰り返しやってくる。", solitude:"夜の静けさが、自分の本当の声を聞かせてくれる。それが孤独の価値だ。", distance:"社会の速度についていけないのではなく、その速度に意味を感じていない。", quote:"深夜だけが、本当のことを語る。" },
+  boundary_walker:   { definition:"どこにも属さず、どこにもいられるという逆説の中に、自分の場所を見つけている。", contradiction:"境界にいることは不安定に見えるが、それが最も自分らしい安定だと知っている。", solitude:"内側でも外側でもない場所が、最も静かだ。", distance:"カテゴリの外に立つことで、全体が見える。それを疎外とは呼ばない。", quote:"内側でも外側でもない場所が、最も自分らしい。" },
+  meaning_weaver:    { definition:"日常の中に小さな意味を見つけ続けることで、世界との関係を編んでいる思想。", contradiction:"意味を作れると信じているが、その意味が崩れるとき、根ごと揺らがされる。", solitude:"一人の時間に、意味を整理する。それは作業ではなく、儀式に近い。", distance:"社会の意味体系に乗り切れないが、自分だけの意味体系を持っている。", quote:"意味は見つけるものではなく、作るものだと思っている。" },
+  gentle_nihilist:   { definition:"虚無を知りながら、それでも誰かに優しくできる。その矛盾した強さが、この思想の核心だ。", contradiction:"何も信じていないわけではない。ただ、信じることへの根拠を持てないでいる。", solitude:"孤独には慣れているが、慣れたこととそれを望んだことは別の話だと知っている。", distance:"人の輪に入れないのではなく、入る意味を見つけられないでいる状態が続いている。", quote:"虚無と優しさは、同じ場所から来ているかもしれない。" },
+  solitary_nihilist: { definition:"意味の不在を知りながら、それでも何かを探し続けるという矛盾した構造を持つ人間の思想。", contradiction:"何も信じていないと言いながら、信じられるものを探し続けているという逆説がある。", solitude:"孤独には慣れているが、慣れたこととそれを望んだことは別の話だと、どこかで知っている。", distance:"人の輪に入れないのではなく、入る意味を見つけられないでいる状態が続いている。", quote:"虚無を知っている人間は、それでも朝に目を覚ます。" },
+  logical_skeptic:   { definition:"感情より論理を、確信より疑問を選ぶことで、世界を正確に見ようとする思想の構造。", contradiction:"冷静に疑いながら、その姿勢自体を信じているという逆説の中にいる。", solitude:"一人でいる時の方が、論理が整理される気がしている。", distance:"感情的な判断より、一歩引いた視点の方が信頼できる。", quote:"疑うことは、信じることより誠実かもしれない。" },
+  border_dweller:    { definition:"いくつかの思想的傾向が重なり合い、一つの軸では語れない複雑な構造を持っているかもしれない。", contradiction:"自分の価値観を持ちながら、それが正しいかどうか問い続けているという構造がある。", solitude:"一人の時間と他者との時間、どちらが本当の自分に近いのか、まだ答えが出ていない。", distance:"社会との距離を意識しながら、それでも完全には切れないでいる。", quote:"問い続けることが、答えを持つことより誠実かもしれない。" },
+  default:           { definition:"いくつかの思想的傾向が重なり合い、一つの軸では語れない複雑な構造を持つかもしれない。", contradiction:"自分の価値観を持ちながら、それが正しいかどうか問い続けているという構造がある。", solitude:"一人の時間と他者との時間、どちらが本当の自分に近いのか、まだ答えが出ていない。", distance:"社会との距離を意識しながら、それでも完全には切れないでいる。", quote:"問い続けることが、答えを持つことより誠実かもしれない。" },
 };
 
 function calcTraits(answers) {
-  const base = { freedom:0, stability:0, idealism:0, realism:0, logic:0, emotion:0, loneliness:0, nihilism:0, romanticism:0, community:0 };
-  for (const { scores } of answers) for (const [k,v] of Object.entries(scores ?? {})) base[k] = (base[k]??0) + v;
+  // 14軸の初期値（全て0、正規化後0-100に）
+  const base = {
+    freedom:0, stability:0,
+    idealism:0, realism:0,
+    logic:0, emotion:0,
+    loneliness:0, community:0,
+    nihilism:0, romanticism:0,
+    // 追加軸
+    sensitivity:0, rationality:0,
+    curiosity:0, optimism:0,
+  };
+  for (const { scores } of answers) {
+    for (const [k,v] of Object.entries(scores ?? {})) {
+      if (k in base) base[k] = (base[k] ?? 0) + v;
+    }
+  }
   const norm = {};
-  for (const [k,v] of Object.entries(base)) norm[k] = Math.min(100, Math.max(0, Math.round(50 + v * 2.2)));
+  for (const [k,v] of Object.entries(base)) {
+    norm[k] = Math.min(100, Math.max(0, Math.round(50 + v * 2.2)));
+  }
   return norm;
 }
-function resolveType(traits)        { return THOUGHT_TYPES.find(t => t.cond(traits)) ?? THOUGHT_TYPES.at(-1); }
+
+// ── resolveType: スコアの組み合わせで最もマッチするタイプを選ぶ
+// 単純な先頭マッチではなく、全タイプのcondを評価し
+// 最初にtrueになったもの（デフォルト前）を返す
+// ただし、スコアの絶対値が低い（全て50近傍）場合はデフォルトに向かいやすい
+function resolveType(traits) {
+  // スコアの「強さ」を計算（中央50からの最大乖離）
+  const maxDeviation = Math.max(
+    ...Object.values(traits).map(v => Math.abs(v - 50))
+  );
+
+  // スコア差が小さい（回答が中立的）場合はデフォルト寄りの揺らぎを加える
+  if (maxDeviation < 8) return THOUGHT_TYPES.at(-1); // border_dweller
+
+  // condがtrueになる全タイプを収集し、最初のものを返す
+  const matched = THOUGHT_TYPES.filter(t => t.cond(traits));
+  // デフォルト（border_dweller）以外が見つかれば最初のものを返す
+  const nonDefault = matched.filter(t => t.id !== "border_dweller");
+  if (nonDefault.length > 0) return nonDefault[0];
+  return THOUGHT_TYPES.at(-1);
+}
 // 上位3件（モックの3人グリッド対応）
 function resolvePhilosophers(traits){ return [...PHILOSOPHERS].map(p=>({...p,score:p.affinity(traits)})).sort((a,b)=>b.score-a.score).slice(0,3); }
 function getFallback(id)            { return FALLBACK_BY_TYPE[id] ?? FALLBACK_BY_TYPE.default; }
+
+// ══════════════════════════════════════════════════════════════
+//  知的体験機能データ定義
+// ══════════════════════════════════════════════════════════════
+
+// ── 思想空間マップ: 哲学者の思想座標
+// x: 自由(+1) ←→ 秩序(-1)
+// y: 個人(+1) ←→ 共同体(-1)
+// z: 実存(+1) ←→ 本質(-1) ※DepthとしてNodeサイズに反映
+const PHIL_COORDS = {
+  "フリードリヒ・ニーチェ":             { x: 0.82, y: 0.72, z: 0.60, color:"#c8a060" },
+  "ジャン=ポール・サルトル":            { x: 0.68, y: 0.50, z: 0.95, color:"#7aaedd" },
+  "アルベール・カミュ":                 { x: 0.42, y: 0.28, z: 0.68, color:"#6aaa9a" },
+  "マルティン・ハイデガー":             { x:-0.08, y: 0.38, z: 0.80, color:"#5aaa9a" },
+  "ミシェル・フーコー":                 { x:-0.22, y:-0.18, z: 0.30, color:"#9878cc" },
+  "ソーレン・キェルケゴール":           { x: 0.55, y: 0.82, z: 0.90, color:"#8890a8" },
+  "シモーヌ・ド・ボーヴォワール":       { x: 0.60, y:-0.15, z: 0.75, color:"#c870aa" },
+  "エミール・シオラン":                 { x: 0.28, y: 0.65, z: 0.50, color:"#8898a8" },
+  "アルトゥル・ショーペンハウアー":     { x:-0.30, y: 0.50, z:-0.40, color:"#a07858" },
+  "ルートヴィヒ・ウィトゲンシュタイン": { x:-0.50, y: 0.20, z: 0.10, color:"#6888a8" },
+  "ジャン・ボードリヤール":             { x:-0.18, y:-0.12, z:-0.20, color:"#887888" },
+  "ハンナ・アーレント":                 { x:-0.40, y:-0.60, z: 0.45, color:"#88a880" },
+};
+
+// ── 思想家ネットワーク: 影響関係エッジ
+const PHIL_NETWORK = [
+  { from:"フリードリヒ・ニーチェ",     to:"マルティン・ハイデガー",  strength:0.9, label:"存在論に影響" },
+  { from:"フリードリヒ・ニーチェ",     to:"ミシェル・フーコー",      strength:0.8, label:"系譜学の手法" },
+  { from:"フリードリヒ・ニーチェ",     to:"ジャン=ポール・サルトル", strength:0.6, label:"実存主義の先駆" },
+  { from:"フリードリヒ・ニーチェ",     to:"エミール・シオラン",      strength:0.65, label:"ニヒリズム継承" },
+  { from:"フリードリヒ・ニーチェ",     to:"アルベール・カミュ",      strength:0.5, label:"不条理論の源泉" },
+  { from:"アルトゥル・ショーペンハウアー", to:"フリードリヒ・ニーチェ", strength:0.9, label:"悲観主義からの出発" },
+  { from:"ソーレン・キェルケゴール",   to:"マルティン・ハイデガー",  strength:0.88, label:"実存概念の継承" },
+  { from:"ソーレン・キェルケゴール",   to:"ジャン=ポール・サルトル", strength:0.75, label:"実存主義の継承" },
+  { from:"マルティン・ハイデガー",     to:"ジャン=ポール・サルトル", strength:0.85, label:"現象学の影響" },
+  { from:"マルティン・ハイデガー",     to:"ミシェル・フーコー",      strength:0.70, label:"存在論的影響" },
+  { from:"ジャン=ポール・サルトル",    to:"シモーヌ・ド・ボーヴォワール", strength:0.90, label:"実存主義の共同研究" },
+  { from:"ジャン=ポール・サルトル",    to:"アルベール・カミュ",      strength:0.70, label:"論争と対話" },
+  { from:"アルトゥル・ショーペンハウアー", to:"エミール・シオラン",  strength:0.72, label:"悲観主義継承" },
+];
+
+// ── 今日の思想（起動時・日付ハッシュで選択）
+const DAILY_THOUGHTS = [
+  { quote:"深淵を覗くとき、深淵もまたこちらを覗いている。",
+    author:"フリードリヒ・ニーチェ", authorEn:"Nietzsche", color:"#c8a060",
+    theme:"虚無と対峙",
+    insight:"見ることは、見られることでもある。思考の深部に降りるほど、思考そのものの構造が問われ始める。",
+    concept:"永劫回帰", emoji:"⚡" },
+  { quote:"人間は自由の刑に処されている。",
+    author:"ジャン=ポール・サルトル", authorEn:"Sartre", color:"#7aaedd",
+    theme:"自由の重さ",
+    insight:"選ばないという選択すら選択である。自由は特権ではなく、逃れられない条件として私たちに与えられている。",
+    concept:"投企", emoji:"📖" },
+  { quote:"不条理を認識したうえで、それでも生き続けることが反抗だ。",
+    author:"アルベール・カミュ", authorEn:"Camus", color:"#6aaa9a",
+    theme:"反抗という生き方",
+    insight:"意味がないと知りながら求める。その矛盾を引き受けることが、最も誠実な存在の形かもしれない。",
+    concept:"シーシュポスの幸福", emoji:"🚬" },
+  { quote:"不安とは自由のめまいである。",
+    author:"ソーレン・キェルケゴール", authorEn:"Kierkegaard", color:"#8890a8",
+    theme:"不安の源泉",
+    insight:"可能性を前にしたとき、選択の重みが眩暈として現れる。不安は病ではなく、自由の証明だ。",
+    concept:"実存の三段階", emoji:"🌊" },
+  { quote:"語りえないことについては、沈黙しなければならない。",
+    author:"ルートヴィヒ・ウィトゲンシュタイン", authorEn:"Wittgenstein", color:"#6888a8",
+    theme:"言語の限界",
+    insight:"言葉になった瞬間に失われるものがある。沈黙は空白ではなく、語りえぬものが宿る場所だ。",
+    concept:"言語ゲーム", emoji:"🔇" },
+  { quote:"権力は禁止するのではなく、産出する。",
+    author:"ミシェル・フーコー", authorEn:"Foucault", color:"#9878cc",
+    theme:"権力の逆説",
+    insight:"「正常」という概念自体が産出され、それが規律となる。見えない権力の方が、見える権力より深く人を形成する。",
+    concept:"生政治", emoji:"👁" },
+  { quote:"自由とは、他者の自由なくしては存在しない。",
+    author:"シモーヌ・ド・ボーヴォワール", authorEn:"Beauvoir", color:"#c870aa",
+    theme:"関係の中の自由",
+    insight:"自分だけの自由を求めるとき、その自由は既に歪んでいる。他者の解放なくして、自分の解放はない。",
+    concept:"相互承認", emoji:"✒️" },
+];
+
+// ── 回答ハイライト: キーワード → 哲学概念マッピング
+const THOUGHT_KEYWORDS = [
+  { word:"孤独", concept:"孤独性", color:"#8890a8",
+    philosophers:["ソーレン・キェルケゴール","エミール・シオラン","マルティン・ハイデガー"],
+    desc:"他者から切り離された単独の存在感覚" },
+  { word:"自由", concept:"自由論", color:"#7aaedd",
+    philosophers:["ジャン=ポール・サルトル","シモーヌ・ド・ボーヴォワール","フリードリヒ・ニーチェ"],
+    desc:"選択と責任を引き受ける存在の根本条件" },
+  { word:"意味", concept:"意味論", color:"#6aaa9a",
+    philosophers:["アルベール・カミュ","フリードリヒ・ニーチェ"],
+    desc:"存在に目的を見出そうとする問い" },
+  { word:"不安", concept:"実存的不安", color:"#b07ac8",
+    philosophers:["ソーレン・キェルケゴール","マルティン・ハイデガー"],
+    desc:"可能性の眩暈。自由の感触" },
+  { word:"死",  concept:"死への存在", color:"#7a8898",
+    philosophers:["マルティン・ハイデガー","アルベール・カミュ"],
+    desc:"有限性の意識が現在を鮮明にする" },
+  { word:"社会", concept:"社会性", color:"#88a870",
+    philosophers:["シモーヌ・ド・ボーヴォワール","ミシェル・フーコー"],
+    desc:"個人が埋め込まれる構造的文脈" },
+  { word:"虚無", concept:"ニヒリズム", color:"#9898b8",
+    philosophers:["フリードリヒ・ニーチェ","エミール・シオラン"],
+    desc:"価値の根拠が失われた状態。克服か受容か" },
+  { word:"選択", concept:"選択と責任", color:"#c8a060",
+    philosophers:["ジャン=ポール・サルトル","ソーレン・キェルケゴール"],
+    desc:"選ぶことで自己を作る。逃れられない条件" },
+  { word:"理想", concept:"理想主義", color:"#b07ac8",
+    philosophers:["ソーレン・キェルケゴール","ジャン=ポール・サルトル"],
+    desc:"現実を超えたものへの指向" },
+  { word:"他者", concept:"他者論", color:"#c870aa",
+    philosophers:["ジャン=ポール・サルトル","シモーヌ・ド・ボーヴォワール"],
+    desc:"自己を映す鏡でありながら、その鏡を超える存在" },
+  { word:"権力", concept:"権力論", color:"#9878cc",
+    philosophers:["ミシェル・フーコー","フリードリヒ・ニーチェ"],
+    desc:"関係の中で作動する力。禁止より産出" },
+  { word:"言葉", concept:"言語論", color:"#a09080",
+    philosophers:["ルートヴィヒ・ウィトゲンシュタイン","マルティン・ハイデガー"],
+    desc:"世界の限界は言語の限界である" },
+  { word:"反抗", concept:"不条理への反抗", color:"#6aaa9a",
+    philosophers:["アルベール・カミュ"],
+    desc:"無意味に屈しない意志。シーシュポスの幸福" },
+  { word:"時間", concept:"時間性", color:"#6888a8",
+    philosophers:["マルティン・ハイデガー","ソーレン・キェルケゴール"],
+    desc:"過去・現在・未来を生きる存在の様式" },
+  { word:"存在", concept:"存在論", color:"#5aaa9a",
+    philosophers:["マルティン・ハイデガー","ジャン=ポール・サルトル"],
+    desc:"「なぜ何もないのではなく、何かがあるのか」" },
+  { word:"本質", concept:"本質主義", color:"#7a9898",
+    philosophers:["ジャン=ポール・サルトル","マルティン・ハイデガー"],
+    desc:"実存に先立つとされる定義や目的" },
+];
+
+// ── 思想座標を calcTraits のスコアから算出
+function calcThoughtCoords(traits) {
+  if (!traits) return { x:0, y:0, z:0 };
+  // x: 自由(+1) ←→ 秩序(-1)
+  const x = ((traits.freedom ?? 50) - (traits.stability ?? 50)) / 100;
+  // y: 個人(+1) ←→ 共同体(-1)
+  const y = ((traits.loneliness ?? 50) - (traits.community ?? 50)) / 100;
+  // z: 実存(+1) ←→ 本質(-1) ※ nihilism vs idealism で近似
+  const z = ((traits.nihilism ?? 50) - (traits.idealism ?? 50)) / 100;
+  return {
+    x: Math.max(-1, Math.min(1, x)),
+    y: Math.max(-1, Math.min(1, y)),
+    z: Math.max(-1, Math.min(1, z)),
+  };
+}
+
+// ── 思想変化ログ（localStorage）
+const TIMELINE_KEY = "noema_timeline";
+function loadTimeline() {
+  try { return JSON.parse(localStorage.getItem(TIMELINE_KEY) ?? "[]"); } catch { return []; }
+}
+function saveTimeline(entries) {
+  try { localStorage.setItem(TIMELINE_KEY, JSON.stringify(entries.slice(0, 20))); } catch {}
+}
+function addTimelineEntry(result) {
+  const existing = loadTimeline();
+  const entry = {
+    id: Date.now().toString(),
+    date: new Date().toISOString(),
+    typeName: result.typeName,
+    typeColor: result.typeColor,
+    traits: result.traits,
+    coords: calcThoughtCoords(result.traits),
+    labels: result.ideologicalLabels ?? [],
+  };
+  const updated = [entry, ...existing];
+  saveTimeline(updated);
+  return updated;
+}
+
+// 今日の思想を日付ベースで選択
+function getDailyThought() {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  return DAILY_THOUGHTS[dayOfYear % DAILY_THOUGHTS.length];
+}
 
 // ── 思想ラベル計算
 // スコアから該当する「思想傾向ラベル」を最大5つ返す
@@ -1909,6 +2270,172 @@ const GLOBAL_CSS = `
     .phil-meta { gap: 4px 10px; }
     .phil-meta-v { font-size: 11px; }
     .btn-wiki { font-size: 9px; padding: 10px 14px; }
+  }
+
+  /* ══════════════════════════════════════════════
+     知的体験機能 — INTELLECTUAL EXPERIENCE LAYER
+  ══════════════════════════════════════════════ */
+
+  /* ── 1. 思想空間マップ ── */
+  @keyframes tsUserPulse {
+    0%,100%{ box-shadow:0 0 12px rgba(140,200,255,0.7),0 0 0 0 rgba(120,185,255,0.2); transform:scale(1); }
+    50%    { box-shadow:0 0 24px rgba(140,200,255,0.95),0 0 0 6px rgba(120,185,255,0); transform:scale(1.08); }
+  }
+  @keyframes tsOrbit {
+    from{ transform:rotate(0deg) translateX(0); }
+    to  { transform:rotate(360deg) translateX(0); }
+  }
+  @keyframes tsFog {
+    0%,100%{ opacity:0.55; transform:scale(1) translate(0,0); }
+    33%    { opacity:0.40; transform:scale(1.04) translate(-8px,4px); }
+    66%    { opacity:0.50; transform:scale(0.97) translate(6px,-3px); }
+  }
+  @keyframes tsFloat {
+    0%,100%{ transform:translateY(0); }
+    50%    { transform:translateY(-4px); }
+  }
+  @keyframes tsConnPulse {
+    0%,100%{ stroke-dashoffset:0; opacity:0.35; }
+    50%    { stroke-dashoffset:-16; opacity:0.6; }
+  }
+  .ts-map-wrap {
+    position:relative; width:100%; border-radius:18px; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 40%, rgba(14,22,48,0.98) 0%, rgba(5,7,12,1) 100%);
+    border:1px solid rgba(255,255,255,0.05);
+  }
+  .ts-node {
+    position:absolute; border-radius:50%; cursor:pointer;
+    transition:transform 0.35s cubic-bezier(0.4,0,0.2,1),
+               box-shadow 0.3s ease, opacity 0.3s ease;
+    display:flex; align-items:center; justify-content:center;
+    animation:tsFloat 6s ease-in-out infinite;
+  }
+  .ts-node:hover { z-index:20 !important; }
+  .ts-axis-label {
+    position:absolute; font-family:monospace; font-size:8px;
+    color:rgba(100,125,175,0.32); letter-spacing:0.16em;
+    pointer-events:none; user-select:none;
+  }
+  .ts-tooltip {
+    position:absolute; z-index:50; pointer-events:none;
+    background:rgba(6,9,18,0.96); border:1px solid rgba(255,255,255,0.07);
+    border-radius:14px; padding:16px 18px; min-width:230px; max-width:280px;
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    animation:fadeUp 0.2s cubic-bezier(0.16,1,0.3,1) both;
+  }
+
+  /* ── 2. 回答ハイライト分析 ── */
+  @keyframes hlGlow {
+    0%,100%{ background-size:100% 1px; }
+    50%    { background-size:100% 2px; }
+  }
+  .hl-word {
+    display:inline; cursor:default; border-radius:3px; padding:0 2px;
+    position:relative; transition:all 0.2s ease;
+    border-bottom:1.5px solid currentColor;
+  }
+  .hl-word:hover { opacity:0.85; }
+  .hl-tooltip {
+    position:absolute; bottom:130%; left:50%; transform:translateX(-50%);
+    z-index:40; white-space:nowrap;
+    background:rgba(6,9,18,0.96); border:1px solid rgba(255,255,255,0.08);
+    border-radius:10px; padding:10px 13px; pointer-events:none;
+    backdrop-filter:blur(16px);
+    animation:fadeUp 0.18s ease both;
+    box-shadow:0 8px 30px rgba(0,0,0,0.5);
+  }
+  .hl-section-label {
+    font-family:var(--f-mono); font-size:8px; letter-spacing:0.22em;
+    color:rgba(80,110,160,0.55); margin-bottom:10px;
+  }
+
+  /* ── 3. 思想変化タイムライン ── */
+  @keyframes tlEntryIn {
+    from{ opacity:0; transform:translateX(-10px); }
+    to  { opacity:1; transform:translateX(0); }
+  }
+  .tl-track {
+    position:relative; padding-left:24px;
+  }
+  .tl-track::before {
+    content:''; position:absolute; left:8px; top:8px; bottom:8px; width:1px;
+    background:linear-gradient(180deg,rgba(80,120,200,0.35) 0%,transparent 100%);
+  }
+  .tl-entry {
+    position:relative; margin-bottom:18px;
+    animation:tlEntryIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .tl-entry::before {
+    content:''; position:absolute; left:-20px; top:10px;
+    width:6px; height:6px; border-radius:50%;
+    background:rgba(90,140,220,0.7);
+    box-shadow:0 0 6px rgba(90,140,220,0.4);
+  }
+  .tl-entry.distant { opacity:0.35; filter:blur(0.4px); }
+  .tl-entry.older   { opacity:0.55; }
+  .tl-date {
+    font-family:var(--f-mono); font-size:8px; letter-spacing:0.15em;
+    color:rgba(80,110,165,0.6); margin-bottom:5px;
+  }
+  .tl-type {
+    font-family:var(--f-serif); font-style:italic; font-weight:300;
+    font-size:14px; color:rgba(200,215,240,0.88); margin-bottom:4px;
+  }
+  .tl-delta {
+    font-family:var(--f-mono); font-size:9px; color:rgba(100,155,200,0.65); letter-spacing:0.08em;
+  }
+
+  /* ── 4. TODAY'S THOUGHT ── */
+  @keyframes todayReveal {
+    from{ opacity:0; transform:translateY(6px); }
+    to  { opacity:1; transform:translateY(0); }
+  }
+  @keyframes todayBreath {
+    0%,100%{ background-position:0% 50%; }
+    50%    { background-position:100% 50%; }
+  }
+  .today-card {
+    position:relative; border-radius:18px; overflow:hidden;
+    background:rgba(8,11,22,0.85); border:1px solid rgba(255,255,255,0.055);
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    animation:todayReveal 0.7s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .today-card-bg {
+    position:absolute; inset:0; opacity:0.06;
+    background:linear-gradient(135deg,var(--tc,#6090d8) 0%,transparent 60%);
+    animation:todayBreath 8s ease-in-out infinite;
+    background-size:200% 200%;
+  }
+  .today-quote {
+    font-family:var(--f-serif); font-style:italic; font-weight:300;
+    font-size:clamp(15px,3.8vw,19px); line-height:1.8; letter-spacing:0.025em;
+    color:rgba(218,226,244,0.95);
+  }
+  .today-insight {
+    font-family:var(--f-jp); font-size:12px; font-weight:200;
+    color:rgba(145,165,210,0.72); line-height:2; letter-spacing:0.03em;
+  }
+
+  /* ── 5. 思想家ネットワーク ── */
+  @keyframes netPulse {
+    0%,100%{ r:5; opacity:0.8; }
+    50%    { r:7; opacity:1; }
+  }
+  @keyframes netEdgeDash {
+    from{ stroke-dashoffset:0; }
+    to  { stroke-dashoffset:-24; }
+  }
+  .net-tooltip {
+    position:absolute; z-index:50; pointer-events:none;
+    background:rgba(6,9,18,0.96); border:1px solid rgba(255,255,255,0.07);
+    border-radius:12px; padding:14px 16px; min-width:200px;
+    backdrop-filter:blur(16px); box-shadow:0 16px 48px rgba(0,0,0,0.55);
+    animation:fadeUp 0.2s ease both;
+  }
+  .net-node-label {
+    font-family:var(--f-jp); font-size:10px; font-weight:300;
+    fill:rgba(175,195,235,0.8);
   }
 `;
 // ───────────────────────────────────────────────────────────────
