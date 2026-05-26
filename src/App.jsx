@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-//  Noema — v6.0 深夜自己理解診断
+//  AI思想チェッカー — v5.0 UI Refined
 //  Vite React · ロジック完全保持 · UI/アニメーション全面刷新
 // ═══════════════════════════════════════════════════════════════
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -12,172 +12,438 @@ import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } fro
 // 各optionの nextId で次の質問を指定。
 // null = 診断終了（runDiagnosisへ）
 // branch軸: freedom / loneliness / nihilism / community / idealism
+// ══════════════════════════════════════════════════════════════
+//  Q_TREE — 心理構造分析型質問ツリー（v3.0）
+//
+//  設計思想：
+//  「感情を聞く」のではなく「反応パターンを見る」
+//  愛着スタイル・防衛機制・認知傾向を間接的に測定する
+//
+//  スコア軸（14軸）:
+//  freedom, stability, idealism, realism, logic, emotion,
+//  loneliness, community, nihilism, romanticism,
+//  sensitivity, rationality, curiosity, optimism
+//
+//  心理軸（隠しパラメータ・calcTraitsで正規化後に活用）:
+//  attach_avoid（回避型愛着） → loneliness + nihilism - community
+//  attach_anxious（不安型）   → emotion + sensitivity - stability
+//  defense_suppress（感情抑圧）→ logic - emotion
+//  cognition_anticipate（先回り不安）→ sensitivity + nihilism
+// ══════════════════════════════════════════════════════════════
 const Q_TREE = {
-  // ══ LAYER 0: 入口（固定2問） ══════════════════════════════
+
+  // ══ LAYER 0: 入口 ─────────────────────────────────────────
+  // 目的: 対人反応のベースライン測定（愛着スタイルの初期分岐）
   "root": {
     id:"root", layer:0,
-    text:"終電を逃した夜、あなたは何を考える？",
+    text:"誰かに優しくされた後、あなたが一番近い感情は？",
     reaction: null,
     options:[
-      { label:"別にいい、どこかで時間を潰す",     scores:{ idealism:-2, realism:+3, nihilism:+1 },  nextId:"q_freedom" },
-      { label:"誰かに連絡してみようかと考える",   scores:{ idealism:+3, freedom:+1 },               nextId:"q_freedom" },
-      { label:"ひとりの時間ができた、と少し思う", scores:{ logic:+2, realism:+1 },                  nextId:"q_freedom" },
-      { label:"今日という日が終わらなくて良かった",scores:{ realism:+2, community:+2, idealism:-1 }, nextId:"q_freedom" },
+      {
+        label:"少し安心する。素直に受け取れる",
+        scores:{ stability:+3, community:+2, emotion:+2 },
+        nextId:"q_trust",
+        hint:"SECURE"
+      },
+      {
+        label:"距離を取りたくなる。なぜか落ち着かない",
+        scores:{ loneliness:+3, freedom:+2, community:-2 },
+        nextId:"q_avoid",
+        hint:"AVOID"
+      },
+      {
+        label:"本音を隠したくなる。見せすぎた気がする",
+        scores:{ loneliness:+2, nihilism:+2, stability:-1 },
+        nextId:"q_mask",
+        hint:"FEARFUL"
+      },
+      {
+        label:"なぜか申し訳なくなる。受け取る資格があるか不安",
+        scores:{ emotion:+3, sensitivity:+2, stability:-2, idealism:+1 },
+        nextId:"q_anxious",
+        hint:"ANXIOUS"
+      },
     ],
   },
 
-  // ── LAYER 1: 自由軸分岐 ────────────────────────────────
-  "q_freedom": {
-    id:"q_freedom", layer:1,
-    text:"あなたが本当に欲しいのは、自由と安心、どっちだと思う？",
-    reaction: null,
+  // ══ LAYER 1: 安定型ルート ─────────────────────────────────
+  // 「少し安心する」→ 信頼の質と条件付きを掘り下げる
+  "q_trust": {
+    id:"q_trust", layer:1,
+    text:"「この人なら信用できる」と思うとき、何が決め手になる？",
+    reaction:"なるほど。あなたの信頼の形が見えてきた気がして。",
     options:[
-      { label:"自由。縛られたくない",            scores:{ freedom:+4, stability:-2, nihilism:+1 },  nextId:"q_lone_hi" },
-      { label:"安心。どこかに居場所が欲しい",    scores:{ stability:+4, freedom:-2, community:+1 }, nextId:"q_lone_lo" },
-      { label:"両方。諦めたくない",              scores:{ idealism:+3, romanticism:+2 },            nextId:"q_ideal"   },
-      { label:"どっちも要らない気がしてきた",    scores:{ nihilism:+4, loneliness:+2, freedom:+1 }, nextId:"q_nihil"   },
+      {
+        label:"裏切らなかった実績。時間をかけて確認する",
+        scores:{ realism:+3, stability:+2, logic:+2 },
+        nextId:"q_depth"
+      },
+      {
+        label:"言葉より行動。何をするかで判断する",
+        scores:{ logic:+3, realism:+2, emotion:-1 },
+        nextId:"q_depth"
+      },
+      {
+        label:"直感。なんとなく分かる",
+        scores:{ emotion:+3, romanticism:+2, sensitivity:+1 },
+        nextId:"q_emotion_pattern"
+      },
+      {
+        label:"本当に信用している人がいるか、自信がない",
+        scores:{ loneliness:+3, nihilism:+2, community:-1 },
+        nextId:"q_isolation"
+      },
     ],
   },
 
-  // ══ LAYER 2A: 自由高（loneliness 方向） ══════════════════
-  "q_lone_hi": {
-    id:"q_lone_hi", layer:2,
-    text:"深夜3時、ひとりでいる。その静けさは心地いい？",
-    reaction:"自由を選んだ人は、孤独との関係が鍵になる気がして。",
+  // ══ LAYER 1: 回避型ルート ─────────────────────────────────
+  // 「距離を取りたくなる」→ 回避の構造を掘り下げる
+  "q_avoid": {
+    id:"q_avoid", layer:1,
+    text:"誰かが近づいてきたとき、最初に何を考える？",
+    reaction:"近づかれる感覚に、何かがあるみたいで。",
     options:[
-      { label:"心地いい。ここが一番正直になれる",    scores:{ loneliness:+4, freedom:+2, community:-2 }, nextId:"q_lone_deep" },
-      { label:"少し寂しいが、それも悪くない",        scores:{ community:+3, emotion:+2, loneliness:-1 }, nextId:"q_social"    },
-      { label:"静けさより、誰かの声が欲しい",        scores:{ logic:+2, realism:+1 },                    nextId:"q_tension"   },
-      { label:"いつのまにかこうなっていた",          scores:{ realism:+3, stability:+1 },                nextId:"q_tension"   },
+      {
+        label:"この人は何を求めているのか、を考える",
+        scores:{ logic:+3, loneliness:+2, rationality:+2 },
+        nextId:"q_distance"
+      },
+      {
+        label:"どこまで開けばいいか、をすぐ計算する",
+        scores:{ loneliness:+3, logic:+2, community:-2 },
+        nextId:"q_distance"
+      },
+      {
+        label:"嬉しいけど、どこかに身構える",
+        scores:{ emotion:+2, sensitivity:+2, stability:-1 },
+        nextId:"q_emotion_pattern"
+      },
+      {
+        label:"できるだけ何も感じないようにする",
+        scores:{ nihilism:+3, loneliness:+2, emotion:-2 },
+        nextId:"q_isolation"
+      },
     ],
   },
 
-  // ══ LAYER 2B: 安定高（community 方向） ═══════════════════
-  "q_lone_lo": {
-    id:"q_lone_lo", layer:2,
-    text:"誰かといるとき、本当の自分でいられてる？",
-    reaction:"なるほど。安心の中身が気になって。",
+  // ══ LAYER 1: 本音隠蔽ルート ───────────────────────────────
+  // 「本音を隠したくなる」→ 防衛の種類を特定する
+  "q_mask": {
+    id:"q_mask", layer:1,
+    text:"本音を隠すとき、あなたはどのやり方を選んでいる？",
+    reaction:"その隠し方に、あなたの癖が出る気がして。",
     options:[
-      { label:"ある人といるときは、なれてる",      scores:{ stability:+3, community:+2 },          nextId:"q_social"  },
-      { label:"わかってもらえてる感じがある",      scores:{ emotion:+3, community:+2, logic:-1 },   nextId:"q_social"  },
-      { label:"いつもどこか演じている気がする",    scores:{ loneliness:+3, nihilism:+1 },           nextId:"q_nihil"   },
-      { label:"「本当の自分」が何かわからない",    scores:{ nihilism:+2, realism:+1 },              nextId:"q_nihil"   },
+      {
+        label:"論理的に説明して、感情を見えなくする",
+        scores:{ logic:+4, emotion:-2, rationality:+2 },
+        nextId:"q_depth"
+      },
+      {
+        label:"冗談にして、本気じゃないフリをする",
+        scores:{ nihilism:+2, freedom:+2, sensitivity:+1 },
+        nextId:"q_nihil_branch"
+      },
+      {
+        label:"話題を変える。気づかれないように",
+        scores:{ loneliness:+2, community:-1, stability:+1 },
+        nextId:"q_distance"
+      },
+      {
+        label:"その場にいなくなる。物理的に",
+        scores:{ loneliness:+3, freedom:+3, community:-3 },
+        nextId:"q_isolation"
+      },
     ],
   },
 
-  // ══ LAYER 2C: 理想主義方向 ════════════════════════════════
-  "q_ideal": {
-    id:"q_ideal", layer:2,
-    text:"「世界は変わる」という感覚、今もどこかに残ってる？",
-    reaction:"面白いですね。理想と現実の間にいる感じがして。",
+  // ══ LAYER 1: 不安型ルート ─────────────────────────────────
+  // 「申し訳なくなる」→ 承認欲求と自己否定を掘り下げる
+  "q_anxious": {
+    id:"q_anxious", layer:1,
+    text:"誰かの機嫌が悪いとき、自分のせいかもと思う？",
+    reaction:"その反応に、大切なものが見える気がして。",
     options:[
-      { label:"ある。それを信じて動いてる",        scores:{ idealism:+4, romanticism:+2 },           nextId:"q_ideal_deep" },
-      { label:"信じたいけど、揺れてる",            scores:{ idealism:+2, nihilism:+1, emotion:+1 },   nextId:"q_tension"    },
-      { label:"もう期待しない方が楽だと気づいた",  scores:{ nihilism:+2, realism:+2, idealism:-1 },   nextId:"q_nihil"      },
-      { label:"最初からそういう感覚がない",        scores:{ nihilism:+3, realism:+3, idealism:-2 },   nextId:"q_nihil"      },
+      {
+        label:"よく思う。何かしたか、すぐ確認したくなる",
+        scores:{ sensitivity:+3, emotion:+3, stability:-2 },
+        nextId:"q_emotion_pattern"
+      },
+      {
+        label:"たまに思う。でも確認はしない",
+        scores:{ sensitivity:+2, loneliness:+1, logic:+1 },
+        nextId:"q_emotion_pattern"
+      },
+      {
+        label:"関係ないと分かっていても、気になってしまう",
+        scores:{ emotion:+2, sensitivity:+2, nihilism:+1 },
+        nextId:"q_depth"
+      },
+      {
+        label:"あまり思わない。他人の感情は他人のもの",
+        scores:{ logic:+2, freedom:+2, community:-1 },
+        nextId:"q_depth"
+      },
     ],
   },
 
-  // ══ LAYER 2D: 虚無方向 ═══════════════════════════════════
-  "q_nihil": {
-    id:"q_nihil", layer:2,
-    text:"「何もかもどうでもいい」と思う瞬間、あなたはどうする？",
-    reaction:"では次に。少し深い方へ。",
+  // ══ LAYER 2: 信頼の深度 ───────────────────────────────────
+  "q_depth": {
+    id:"q_depth", layer:2,
+    text:"「この人には本音を言える」と思った後、後悔したことはある？",
+    reaction:"少し深いところへ。",
     options:[
-      { label:"そのまま、ぼーっとしている",         scores:{ nihilism:+4, loneliness:+1 },           nextId:"q_nihil_deep" },
-      { label:"何かに集中して、感覚をごまかす",     scores:{ realism:+2, stability:+2 },              nextId:"q_tension"    },
-      { label:"意味を自分で作ろうとする",           scores:{ idealism:+2, freedom:+2, nihilism:-1 },  nextId:"q_ideal_deep" },
-      { label:"その感覚自体が怖くて、誰かに話す",   scores:{ community:+2, emotion:+3, nihilism:-2 }, nextId:"q_social"     },
+      {
+        label:"ある。それからは開き方を慎重にした",
+        scores:{ loneliness:+3, nihilism:+2, community:-1 },
+        nextId:"q_defense"
+      },
+      {
+        label:"ある。でも後悔より、話せた方が良かったと思う",
+        scores:{ emotion:+2, community:+2, idealism:+1 },
+        nextId:"q_value"
+      },
+      {
+        label:"ない。でも本音を言える人が少ない",
+        scores:{ loneliness:+2, stability:+1, logic:+1 },
+        nextId:"q_defense"
+      },
+      {
+        label:"本音を言える人がいない",
+        scores:{ loneliness:+4, nihilism:+2, community:-2 },
+        nextId:"q_isolation"
+      },
     ],
   },
 
-  // ══ LAYER 3A: 孤独深化 ════════════════════════════════════
-  "q_lone_deep": {
-    id:"q_lone_deep", layer:3,
-    text:"ひとりでいることは、「選んでいる」のか「なってしまっている」のか、正直なところ。",
-    reaction:"孤独と自由が重なる場所を見ている気がして。",
+  // ══ LAYER 2: 距離の取り方 ─────────────────────────────────
+  "q_distance": {
+    id:"q_distance", layer:2,
+    text:"関係が深くなりそうになると、どこかで引いてしまうことがある？",
+    reaction:"距離の問題が見えてきた気がして。",
     options:[
-      { label:"選んでいる。その方が楽だから",        scores:{ freedom:+3, loneliness:+2, community:-2 }, nextId:"q_belief" },
-      { label:"気づいたらそうなっていた",            scores:{ loneliness:+3, nihilism:+2, freedom:-1 },  nextId:"q_belief" },
-      { label:"最初は選んだが、今は慣れた",          scores:{ loneliness:+2, realism:+2 },               nextId:"q_belief" },
-      { label:"よくわからない、どちらでもある",      scores:{ nihilism:+1, realism:+1 },                  nextId:"q_belief" },
+      {
+        label:"ある。理由は分からないけど、引いてしまう",
+        scores:{ loneliness:+3, nihilism:+2, freedom:+2, community:-2 },
+        nextId:"q_defense"
+      },
+      {
+        label:"ある。傷つくのが分かってるから",
+        scores:{ loneliness:+2, sensitivity:+2, realism:+1 },
+        nextId:"q_defense"
+      },
+      {
+        label:"あまりない。深くなることが自然",
+        scores:{ community:+3, emotion:+2, stability:+1 },
+        nextId:"q_value"
+      },
+      {
+        label:"相手による。人を選んでいる",
+        scores:{ logic:+2, realism:+2, stability:+1 },
+        nextId:"q_value"
+      },
     ],
   },
 
-  // ══ LAYER 3B: 社会性深化 ══════════════════════════════════
-  "q_social": {
-    id:"q_social", layer:3,
-    text:"「本当に理解された」と感じた瞬間、あなたの人生に何度あった？",
-    reaction:"なるほど。人との距離の取り方が見えてきた気がして。",
+  // ══ LAYER 2: 感情パターン ─────────────────────────────────
+  "q_emotion_pattern": {
+    id:"q_emotion_pattern", layer:2,
+    text:"感情が高ぶったとき、あなたは最初に何をする？",
+    reaction:"感情との付き合い方が見えてきた気がして。",
     options:[
-      { label:"何度かある。その記憶は今も温かい",   scores:{ community:+3, emotion:+2, loneliness:-2 }, nextId:"q_belief" },
-      { label:"数えるくらい。でも忘れられない",     scores:{ emotion:+1, loneliness:+1 },               nextId:"q_belief" },
-      { label:"ほとんどない。結局わかってもらえない",scores:{ loneliness:+3, nihilism:+1, community:-2 }, nextId:"q_belief" },
-      { label:"理解されることを望んでいない",       scores:{ freedom:+2, loneliness:+2, community:-3 },  nextId:"q_belief" },
+      {
+        label:"ひとりになる。整理されるまで誰とも話さない",
+        scores:{ loneliness:+3, logic:+2, community:-1 },
+        nextId:"q_defense"
+      },
+      {
+        label:"誰かに話す。吐き出さないと処理できない",
+        scores:{ community:+3, emotion:+3, loneliness:-1 },
+        nextId:"q_value"
+      },
+      {
+        label:"何か別のことに集中する。忘れようとする",
+        scores:{ stability:+2, nihilism:+1, emotion:-1 },
+        nextId:"q_defense"
+      },
+      {
+        label:"感情が高ぶること自体、あまりない",
+        scores:{ logic:+3, nihilism:+2, emotion:-2 },
+        nextId:"q_defense"
+      },
     ],
   },
 
-  // ══ LAYER 3C: 矛盾・緊張 ══════════════════════════════════
-  "q_tension": {
-    id:"q_tension", layer:3,
-    text:"自分の中で、矛盾したものが同時に存在している感覚はある？",
-    reaction:"興味深いですね。葛藤の場所が見えてきた。",
+  // ══ LAYER 2: 孤立感 ───────────────────────────────────────
+  "q_isolation": {
+    id:"q_isolation", layer:2,
+    text:"「本当の自分を知っている人がいない」と感じることはある？",
+    reaction:"そこを少し掘り下げてみたくて。",
     options:[
-      { label:"常にある。それが自分だとも思う",    scores:{ emotion:+2, idealism:+1, nihilism:+1 },       nextId:"q_belief" },
-      { label:"たまにある。気づくと混乱する",      scores:{ logic:+2, realism:+1 },                        nextId:"q_belief" },
-      { label:"あまりない。一本道で動いている",    scores:{ logic:+3, stability:+2, nihilism:-1 },          nextId:"q_belief" },
-      { label:"矛盾があるのが当然だと思っている",  scores:{ realism:+2, romanticism:+1 },                  nextId:"q_belief" },
+      {
+        label:"常にある。みんな表面の自分を見ている",
+        scores:{ loneliness:+4, nihilism:+3, community:-2 },
+        nextId:"q_nihil_branch"
+      },
+      {
+        label:"ある。でも、それでいいとも思っている",
+        scores:{ loneliness:+3, freedom:+2, nihilism:+1 },
+        nextId:"q_nihil_branch"
+      },
+      {
+        label:"たまにある。でも近づこうとはする",
+        scores:{ emotion:+2, idealism:+2, loneliness:+1 },
+        nextId:"q_value"
+      },
+      {
+        label:"あまりない。理解してくれる人がいる",
+        scores:{ community:+3, stability:+2, emotion:+1 },
+        nextId:"q_value"
+      },
     ],
   },
 
-  // ══ LAYER 3D: 理想深化 ════════════════════════════════════
-  "q_ideal_deep": {
-    id:"q_ideal_deep", layer:3,
-    text:"理想を持ち続けることが、苦しくなることはある？",
-    reaction:"理想主義の裏側を少し見てみたくて。",
+  // ══ LAYER 3: 防衛機制の種類 ───────────────────────────────
+  "q_defense": {
+    id:"q_defense", layer:3,
+    text:"傷ついたとき、あなたが一番やってしまうことは？",
+    reaction:"防衛の形が見えてきた気がして。",
     options:[
-      { label:"ある。でも手放せない。それが自分だから",scores:{ idealism:+3, romanticism:+2, nihilism:+1 }, nextId:"q_belief" },
-      { label:"苦しさより、信じている方が充実する",  scores:{ idealism:+4, emotion:+2 },                nextId:"q_belief" },
-      { label:"だから少しずつ現実的になっている",    scores:{ realism:+3, idealism:-1 },                nextId:"q_belief" },
-      { label:"苦しくなったので、理想を諦めた",      scores:{ nihilism:+3, realism:+3, idealism:-3 },   nextId:"q_belief" },
+      {
+        label:"「どうせこんなもの」と冷めた目で見る",
+        scores:{ nihilism:+3, loneliness:+2, idealism:-1 },
+        nextId:"q_final_a"
+      },
+      {
+        label:"なぜそうなったかを論理的に整理する",
+        scores:{ logic:+3, rationality:+2, emotion:-1 },
+        nextId:"q_final_a"
+      },
+      {
+        label:"自分のどこが悪かったかを考え続ける",
+        scores:{ sensitivity:+3, stability:-2, idealism:+1 },
+        nextId:"q_final_b"
+      },
+      {
+        label:"誰かに優しくして、自分の感情を後回しにする",
+        scores:{ community:+2, emotion:+2, stability:+1 },
+        nextId:"q_final_b"
+      },
     ],
   },
 
-  // ══ LAYER 3E: 虚無深化 ════════════════════════════════════
-  "q_nihil_deep": {
-    id:"q_nihil_deep", layer:3,
-    text:"「何も意味がない」という感覚は、あなたを軽くする？それとも重くする？",
+  // ══ LAYER 3: 価値観の核 ───────────────────────────────────
+  "q_value": {
+    id:"q_value", layer:3,
+    text:"「幸せ」について、今どのくらい信じている？",
+    reaction:"最も深いところへ向かっています。",
+    options:[
+      {
+        label:"信じている。目指す価値がある",
+        scores:{ idealism:+3, optimism:+3, nihilism:-2 },
+        nextId:"q_final_b"
+      },
+      {
+        label:"信じたいが、自分には当てはまらない気がする",
+        scores:{ idealism:+2, loneliness:+2, nihilism:+1 },
+        nextId:"q_final_b"
+      },
+      {
+        label:"幸せという概念自体が曖昧に感じる",
+        scores:{ nihilism:+3, logic:+2, idealism:-1 },
+        nextId:"q_final_a"
+      },
+      {
+        label:"考えないようにしている",
+        scores:{ nihilism:+2, stability:+2, emotion:-1 },
+        nextId:"q_final_a"
+      },
+    ],
+  },
+
+  // ══ LAYER 3: 虚無分岐 ─────────────────────────────────────
+  "q_nihil_branch": {
+    id:"q_nihil_branch", layer:3,
+    text:"「全部どうでもいい」と感じる瞬間、その後どうなる？",
     reaction:"そこが核心に近い気がして。",
     options:[
-      { label:"軽くする。縛られるものが消える",    scores:{ nihilism:+3, freedom:+2, loneliness:+1 },   nextId:"q_belief" },
-      { label:"重くする。底のない穴に落ちる感じ",  scores:{ nihilism:+2, loneliness:+3, emotion:+1 },   nextId:"q_belief" },
-      { label:"どちらでもある。夜によって違う",    scores:{ nihilism:+2, realism:+2 },                  nextId:"q_belief" },
-      { label:"まだわからない。今夜も考えている",  scores:{ nihilism:+1, idealism:+1 },                  nextId:"q_belief" },
+      {
+        label:"少し楽になる。重さが消える感じ",
+        scores:{ nihilism:+3, freedom:+2, loneliness:+1 },
+        nextId:"q_final_a"
+      },
+      {
+        label:"怖くなる。本当に空っぽになりそうで",
+        scores:{ nihilism:+2, sensitivity:+2, idealism:+1, stability:-2 },
+        nextId:"q_final_b"
+      },
+      {
+        label:"また何かを探し始める",
+        scores:{ idealism:+2, curiosity:+2, nihilism:+1 },
+        nextId:"q_final_b"
+      },
+      {
+        label:"そのまま、何もしない",
+        scores:{ nihilism:+3, loneliness:+2, emotion:-1 },
+        nextId:"q_final_a"
+      },
     ],
   },
 
-  // ══ LAYER 4: 全分岐の終端（共通2問） ════════════════════════
-  "q_belief": {
-    id:"q_belief", layer:4,
-    text:"誰にも理解されなくても、自分の感じ方は正しいと思える？",
-    reaction:"最後に、一番核になるところを聞かせてください。",
+  // ══ LAYER 4A: 終端（内向き）──────────────────────────────
+  "q_final_a": {
+    id:"q_final_a", layer:4,
+    text:"深夜に一人でいるとき、あなたの頭にいるのは誰？",
+    reaction:"最後の問いです。",
     options:[
-      { label:"貫く。それしかできない",          scores:{ idealism:+3, loneliness:+2, community:-2 }, nextId:"q_final" },
-      { label:"状況による。柔軟でいたい",        scores:{ realism:+3, logic:+2 },                      nextId:"q_final" },
-      { label:"理解されないなら、変えてみる",    scores:{ community:+2, emotion:+2, idealism:-1 },     nextId:"q_final" },
-      { label:"信念というものが持てない",        scores:{ nihilism:+3, loneliness:+1, idealism:-2 },   nextId:"q_final" },
+      {
+        label:"特定の誰か。消えないでいる",
+        scores:{ romanticism:+3, loneliness:+2, emotion:+2 },
+        nextId:null
+      },
+      {
+        label:"過去の自分。何かを後悔している",
+        scores:{ nihilism:+2, loneliness:+2, realism:+1 },
+        nextId:null
+      },
+      {
+        label:"誰もいない。静かな空白がある",
+        scores:{ loneliness:+3, nihilism:+2, freedom:+1 },
+        nextId:null
+      },
+      {
+        label:"未来の自分。どうなっているか不安",
+        scores:{ sensitivity:+2, idealism:+2, stability:-1 },
+        nextId:null
+      },
     ],
   },
 
-  "q_final": {
-    id:"q_final", layer:4,
-    text:"言葉にならない感情は、あなたの中に存在していると思う？",
-    reaction:"では次に。",
+  // ══ LAYER 4B: 終端（外向き）──────────────────────────────
+  "q_final_b": {
+    id:"q_final_b", layer:4,
+    text:"あなたが「もう少しだけ変わりたい」と思うのは、どんな部分？",
+    reaction:"最後の問いです。",
     options:[
-      { label:"ある。それが一番本当のことだと思う",  scores:{ romanticism:+3, emotion:+3, logic:-1 }, nextId:null },
-      { label:"言葉にならないなら、存在しないのと同じ",scores:{ logic:+4, nihilism:+1, romanticism:-2 },nextId:null },
-      { label:"あるけど、意味があるかはわからない",  scores:{ nihilism:+3, realism:+2 },              nextId:null },
-      { label:"考えたことがなかった",               scores:{ realism:+1, stability:+1 },             nextId:null },
+      {
+        label:"感情を素直に出せるようになりたい",
+        scores:{ emotion:+3, sensitivity:+2, logic:-1 },
+        nextId:null
+      },
+      {
+        label:"誰かを信じることへの恐れを減らしたい",
+        scores:{ loneliness:+2, idealism:+2, community:+1 },
+        nextId:null
+      },
+      {
+        label:"期待をすることへの抵抗を減らしたい",
+        scores:{ nihilism:+1, emotion:+2, idealism:+2 },
+        nextId:null
+      },
+      {
+        label:"自分を責めることを止めたい",
+        scores:{ sensitivity:+3, stability:+1, idealism:+1 },
+        nextId:null
+      },
     ],
   },
 };
@@ -189,41 +455,56 @@ const QUESTIONS = Object.values(Q_TREE);
 //  QUICK MODE 質問セット（5問・二択・30秒〜2分）
 // ══════════════════════════════════════════════════════════════
 const QUICK_QUESTIONS = [
-  { id:"q1", text:"夜中に急に泣けてくることって、ある？",
+  {
+    id:"q1",
+    text:"誰かに「元気？」と聞かれたとき、あなたが一番やること。",
     options:[
-      { label:"たまにある。理由もわからないまま",  scores:{ emotion:+3, loneliness:+2, sensitivity:+1 } },
-      { label:"ある。感情が夜になると戻ってくる",  scores:{ romanticism:+2, emotion:+3, nihilism:+1 } },
-      { label:"あまりない。感情を整理してから寝る", scores:{ logic:+2, stability:+2, rationality:+1 } },
-      { label:"ない。泣くことに意味を感じない",    scores:{ nihilism:+2, realism:+2, rationality:+1 } },
-    ] },
-  { id:"q2", text:"誰かに「あなたのことわかる」と言われたとき、どう感じる？",
+      { label:"「大丈夫」と答える。本音は別にある",       scores:{ loneliness:+3, nihilism:+2, community:-1, sensitivity:+1 } },
+      { label:"正直に答える。隠す理由がない",             scores:{ community:+3, emotion:+2, stability:+1 } },
+      { label:"相手の様子を見てから答える",               scores:{ logic:+2, sensitivity:+2, loneliness:+1 } },
+      { label:"「大丈夫」と答える。それが習慣になってる",  scores:{ nihilism:+2, stability:+2, emotion:-1 } },
+    ]
+  },
+  {
+    id:"q2",
+    text:"誰かに深く関わりすぎたと感じたとき、あなたはどうする？",
     options:[
-      { label:"少し嬉しい。でも本当にわかるの？とも思う", scores:{ loneliness:+2, nihilism:+1, emotion:+2 } },
-      { label:"素直に嬉しい",                            scores:{ community:+3, emotion:+2, optimism:+1 } },
-      { label:"わかってほしいけど、わかってほしくない",   scores:{ loneliness:+3, freedom:+2, sensitivity:+2 } },
-      { label:"どうせわからない、と思ってしまう",         scores:{ nihilism:+3, loneliness:+2, rationality:+1 } },
-    ] },
-  { id:"q3", text:"過去を振り返ることと、未来を考えること。どちらが多い？",
+      { label:"少し距離を置く。自然に減らしていく",        scores:{ loneliness:+3, freedom:+2, community:-2 } },
+      { label:"そのままでいる。でも少し疲れてくる",        scores:{ community:+2, emotion:+2, stability:-1 } },
+      { label:"意識的に関わり方を変えて調整する",          scores:{ logic:+3, rationality:+2 } },
+      { label:"深く関わりすぎる前に、引いている",          scores:{ loneliness:+2, freedom:+3, community:-3 } },
+    ]
+  },
+  {
+    id:"q3",
+    text:"期待していた何かが裏切られたとき、最初にくる感情は？",
     options:[
-      { label:"過去の方が多い。記憶が今もリアルで",      scores:{ emotion:+3, romanticism:+2, nihilism:+1 } },
-      { label:"未来の方が多い。今より先に希望がある",    scores:{ idealism:+3, optimism:+2, freedom:+1 } },
-      { label:"どちらも同じくらい。今が一番不安",        scores:{ realism:+2, stability:+1, emotion:+1 } },
-      { label:"どちらも見ないようにしている",            scores:{ nihilism:+3, loneliness:+2, stability:-1 } },
-    ] },
-  { id:"q4", text:"「孤独」って、あなたにとって何？",
+      { label:"「やっぱりそうか」。予想していた",          scores:{ nihilism:+3, loneliness:+2, realism:+1 } },
+      { label:"ショック。信じていた分だけ傷つく",          scores:{ emotion:+3, sensitivity:+2, idealism:+1 } },
+      { label:"怒り。でもすぐ飲み込む",                   scores:{ emotion:+2, stability:+2, logic:+1 } },
+      { label:"自分のどこが悪かったか考える",              scores:{ sensitivity:+3, stability:-1, idealism:+1 } },
+    ]
+  },
+  {
+    id:"q4",
+    text:"深夜、誰かに連絡したい衝動があるとき、実際に連絡する？",
     options:[
-      { label:"正直に言えば、居心地がいい",             scores:{ loneliness:+3, freedom:+2, sensitivity:+1 } },
-      { label:"慣れてしまったもの",                     scores:{ loneliness:+2, nihilism:+2, realism:+1 } },
-      { label:"苦手だ。できれば誰かといたい",           scores:{ community:+3, emotion:+2, optimism:+1 } },
-      { label:"選んでいるのか、なっているのかわからない",scores:{ nihilism:+2, loneliness:+2, curiosity:+2 } },
-    ] },
-  { id:"q5", text:"眠れない夜、あなたは何をしてる？",
+      { label:"しない。迷惑かもしれないと思う",            scores:{ loneliness:+3, sensitivity:+2, community:-1 } },
+      { label:"する。気にせず送れる",                     scores:{ community:+3, emotion:+2 } },
+      { label:"しない。自分で解決すべきと思う",            scores:{ freedom:+2, logic:+2, loneliness:+1 } },
+      { label:"衝動自体を持ったことがほとんどない",        scores:{ nihilism:+2, loneliness:+2, emotion:-1 } },
+    ]
+  },
+  {
+    id:"q5",
+    text:"「あなたのことが心配」と言われたとき、どう感じる？",
     options:[
-      { label:"何かを考え続けている",                   scores:{ loneliness:+2, nihilism:+1, curiosity:+3 } },
-      { label:"誰かに連絡してみたりする",               scores:{ community:+3, emotion:+2 } },
-      { label:"音楽か動画で気を紛らわせる",             scores:{ sensitivity:+2, stability:+2, optimism:+1 } },
-      { label:"眠れない自分を、ただ見ている",           scores:{ loneliness:+3, nihilism:+2, freedom:+1 } },
-    ] },
+      { label:"ありがたいが、どう返せばいいか分からない",   scores:{ loneliness:+2, sensitivity:+2, community:+1 } },
+      { label:"素直に嬉しい",                            scores:{ community:+3, emotion:+3, optimism:+1 } },
+      { label:"かえって申し訳なくなる",                   scores:{ sensitivity:+3, emotion:+2, stability:-1 } },
+      { label:"心配されるほどではない、と思う",            scores:{ nihilism:+2, logic:+2, stability:+1 } },
+    ]
+  },
 ];
 
 
@@ -231,115 +512,125 @@ const QUICK_QUESTIONS = [
 //  DEEP MODE 質問ステージ（5テーマ×2〜3問＝計12問＋AI追質問）
 // ══════════════════════════════════════════════════════════════
 const DEEP_STAGES = [
-  { stageId:"s1", theme:"存在の出発点", themeEn:"ORIGIN OF EXISTENCE",
-    intro:"まず、あなたが「存在している」という感覚から始めましょう。",
+  // ── ステージ1: 対人反応の基底 ─────────────────────────────
+  { stageId:"s1", theme:"対人反応の基底", themeEn:"INTERPERSONAL BASELINE",
+    intro:"あなたが人とどう関わるかの、根っこを見ていきます。",
     questions:[
-      { id:"d1_1", text:"あなたが「生きている」と最も強く感じる瞬間はいつですか？",
+      { id:"d1_1",
+        text:"仲の良い人が「最近どう？」と聞いてきたとき、最初に何を考える？",
         options:[
-          { label:"誰かと深く笑ったとき",           scores:{ community:+4, emotion:+3 } },
-          { label:"一人で何かに没頭しているとき",    scores:{ loneliness:+3, logic:+2, freedom:+2 } },
-          { label:"美しいものに出会ったとき",        scores:{ romanticism:+5, emotion:+2 } },
-          { label:"正直言って、よくわからない",      scores:{ nihilism:+3, idealism:-1 } },
+          { label:"正直に話そうか、当たり障りなく答えようか迷う", scores:{ loneliness:+3, sensitivity:+2, community:-1 } },
+          { label:"素直に今の状態を話す",                       scores:{ community:+4, emotion:+3 } },
+          { label:"何から話せばいいか分からなくなる",           scores:{ loneliness:+2, nihilism:+2, sensitivity:+2 } },
+          { label:"「大丈夫」と答える準備をする",               scores:{ nihilism:+2, logic:+2, emotion:-1 } },
         ] },
-      { id:"d1_2", text:"「自分らしい」という感覚は、あなたにとって実在しますか？",
+      { id:"d1_2",
+        text:"誰かがあなたのことを心配している、と知ったとき。",
         options:[
-          { label:"はっきりと存在する",              scores:{ idealism:+4, freedom:+2 } },
-          { label:"曖昧だが、何かある",              scores:{ romanticism:+3, emotion:+2 } },
-          { label:"「自分らしさ」という概念自体を疑う", scores:{ nihilism:+3, logic:+3 } },
-          { label:"環境によって変わるものだと思う",  scores:{ realism:+4, community:+1 } },
+          { label:"ありがたいが、どう返せばいいか戸惑う",       scores:{ loneliness:+2, sensitivity:+3, community:+1 } },
+          { label:"素直に嬉しい",                               scores:{ community:+4, emotion:+3, optimism:+1 } },
+          { label:"なぜ心配させてしまったか、自分を責める",     scores:{ sensitivity:+3, stability:-2, nihilism:+1 } },
+          { label:"少し申し訳なく、距離を置きたくなる",         scores:{ loneliness:+3, freedom:+2, community:-2 } },
         ] },
     ] },
-  { stageId:"s2", theme:"孤独と他者", themeEn:"SOLITUDE AND OTHERS",
-    intro:"あなたと、他者との距離について。",
+  // ── ステージ2: 傷つき方のパターン ──────────────────────────
+  { stageId:"s2", theme:"傷つき方のパターン", themeEn:"WOUND PATTERNS",
+    intro:"傷つくとき、あなたの内側で何が起きているのかを見ていきます。",
     questions:[
-      { id:"d2_1", text:"深く理解し合える人間は、存在すると思いますか？",
+      { id:"d2_1",
+        text:"誰かに期待していて、裏切られた。その後、一番長く残る感情は？",
         options:[
-          { label:"いる、あるいはいた",              scores:{ community:+4, emotion:+3, loneliness:-2 } },
-          { label:"いるかもしれないが、まだ会っていない", scores:{ romanticism:+3, loneliness:+2 } },
-          { label:"完全には無理だと思う",            scores:{ loneliness:+4, nihilism:+2 } },
-          { label:"そもそも必要とは思わない",        scores:{ freedom:+3, loneliness:+3, community:-3 } },
+          { label:"「やっぱりそうか」という確信。次から期待しない",    scores:{ nihilism:+4, loneliness:+2, idealism:-2 } },
+          { label:"怒りより悲しみ。信じていた分だけ深く傷つく",       scores:{ emotion:+3, sensitivity:+3, idealism:+1 } },
+          { label:"自分のどこが悪かったかを考え続ける",              scores:{ sensitivity:+3, nihilism:+2, stability:-2 } },
+          { label:"なるべく考えないようにする",                      scores:{ nihilism:+2, stability:+2, emotion:-2 } },
         ] },
-      { id:"d2_2", text:"人といるとき、どこか「演じている」と感じますか？",
+      { id:"d2_2",
+        text:"傷ついたことを、誰かに話したことがある？",
         options:[
-          { label:"いつもではないが、感じることがある", scores:{ loneliness:+2, logic:+2 } },
-          { label:"かなり頻繁に感じる",              scores:{ loneliness:+4, nihilism:+2, community:-3 } },
-          { label:"あまり感じない、自然でいられる",  scores:{ community:+3, emotion:+2 } },
-          { label:"「本当の自分」という概念に違和感がある", scores:{ nihilism:+3, logic:+3 } },
+          { label:"ほぼない。話す方が苦しくなる気がする",             scores:{ loneliness:+4, nihilism:+2, community:-2 } },
+          { label:"信頼できる人には話す",                            scores:{ community:+3, emotion:+2 } },
+          { label:"話したいが、迷惑かもと思ってしまう",              scores:{ sensitivity:+3, loneliness:+2, community:-1 } },
+          { label:"話すより、自分で処理する方が早い",                scores:{ logic:+3, freedom:+2, emotion:-1 } },
         ] },
-      { id:"d2_3", text:"誰かと一緒にいても「孤独」を感じることがありますか？",
+      { id:"d2_3",
+        text:"「自分を責める」癖があると思う？",
         options:[
-          { label:"よくある",                        scores:{ loneliness:+5, community:-2 } },
-          { label:"たまにある",                      scores:{ loneliness:+2, idealism:+1 } },
-          { label:"あまりない",                      scores:{ community:+3 } },
-          { label:"一人でいるときの方が孤独を感じない", scores:{ freedom:+3, loneliness:+3 } },
+          { label:"かなりある。何かあると自分に原因を探す",           scores:{ sensitivity:+4, stability:-2, nihilism:+2 } },
+          { label:"ある程度はある",                                  scores:{ sensitivity:+2, stability:-1, logic:+1 } },
+          { label:"あまりない。客観的に考えられる方",                scores:{ logic:+3, stability:+2 } },
+          { label:"責めるというより、感情が消えていく",              scores:{ nihilism:+3, emotion:-2, loneliness:+2 } },
         ] },
     ] },
-  { stageId:"s3", theme:"意味と虚無", themeEn:"MEANING AND VOID",
-    intro:"存在に意味はあるのか。あなたはどこに立っていますか？",
+  // ── ステージ3: 防衛反応の観察 ─────────────────────────────
+  { stageId:"s3", theme:"防衛反応の観察", themeEn:"DEFENSE OBSERVATION",
+    intro:"ストレスや不安のとき、あなたが無意識にやっていることを見ていきます。",
     questions:[
-      { id:"d3_1", text:"「なんのために生きているのか」という問いを、どう扱いますか？",
+      { id:"d3_1",
+        text:"「感情を出すこと」に抵抗を感じることがある？",
         options:[
-          { label:"真剣に考え続けている",            scores:{ idealism:+3, loneliness:+2 } },
-          { label:"答えはないと思いながら、考える",   scores:{ nihilism:+3, realism:+2 } },
-          { label:"考えないようにしている",           scores:{ stability:+3, realism:+2 } },
-          { label:"そういう問い自体が不毛だと思う",   scores:{ nihilism:+4, logic:+2 } },
+          { label:"かなりある。感情は出してはいけない気がする",       scores:{ logic:+3, emotion:-3, loneliness:+2 } },
+          { label:"ある。でも信頼できる人の前では出せる",            scores:{ community:+2, emotion:+1, logic:+1 } },
+          { label:"あまりない。感情は出た方がいい",                  scores:{ emotion:+3, community:+2 } },
+          { label:"感情があるのか、よく分からない",                  scores:{ nihilism:+3, emotion:-2, loneliness:+2 } },
         ] },
-      { id:"d3_2", text:"「意味がない」という感覚は、あなたを軽くしますか、重くしますか？",
+      { id:"d3_2",
+        text:"不安なとき、あなたが自然にやっていることは？",
         options:[
-          { label:"軽くする。解放される感じがある",   scores:{ nihilism:+4, freedom:+3 } },
-          { label:"重くする。怖くなることがある",     scores:{ nihilism:+3, loneliness:+3 } },
-          { label:"どちらでもある、状況による",       scores:{ realism:+3, nihilism:+2 } },
-          { label:"あまりそういう感覚を持ったことがない", scores:{ stability:+4 } },
-        ] },
-      { id:"d3_3", text:"あなたにとって「死」は、日常的に意識するものですか？",
-        options:[
-          { label:"はい、よく考える",                scores:{ nihilism:+3, loneliness:+2, idealism:+1 } },
-          { label:"たまに意識する",                  scores:{ romanticism:+2, realism:+1 } },
-          { label:"なるべく考えないようにしている",   scores:{ stability:+3 } },
-          { label:"死を考えると、今が鮮明になる",    scores:{ freedom:+3, nihilism:+2, idealism:+2 } },
+          { label:"「大丈夫」と論理的に整理する",                   scores:{ logic:+4, rationality:+2, emotion:-2 } },
+          { label:"誰かに話して、外に出す",                         scores:{ community:+3, emotion:+2 } },
+          { label:"何もしない。波が過ぎるのを待つ",                 scores:{ nihilism:+2, stability:+2 } },
+          { label:"冗談にして、笑いに変える",                       scores:{ nihilism:+2, freedom:+2, sensitivity:+1 } },
         ] },
     ] },
-  { stageId:"s4", theme:"自由と制約", themeEn:"FREEDOM AND CONSTRAINT",
-    intro:"あなたにとっての「自由」とは何か。",
+  // ── ステージ4: 承認と距離 ─────────────────────────────────
+  { stageId:"s4", theme:"承認と距離", themeEn:"APPROVAL AND DISTANCE",
+    intro:"あなたが人にどれだけ「見られたいか」「見られたくないか」を探ります。",
     questions:[
-      { id:"d4_1", text:"「自由でいたい」という欲望と、「所属したい」という欲望、どちらが強いですか？",
+      { id:"d4_1",
+        text:"「誰かに認められたい」という気持ちは、あなたの中にある？",
         options:[
-          { label:"圧倒的に自由でいたい",            scores:{ freedom:+5, stability:-3, community:-2 } },
-          { label:"どちらかというと自由が好き",       scores:{ freedom:+3, stability:-1 } },
-          { label:"どちらかというと所属したい",       scores:{ community:+3, stability:+2 } },
-          { label:"その矛盾の中で生きている",         scores:{ idealism:+3, romanticism:+2, loneliness:+2 } },
+          { label:"ある。でも認められても、完全には満たされない気がする", scores:{ loneliness:+3, nihilism:+2, idealism:+1 } },
+          { label:"ある。認められると素直に嬉しい",                  scores:{ community:+3, emotion:+2, optimism:+1 } },
+          { label:"あまりない。他人の評価はどうでもいい",            scores:{ freedom:+3, nihilism:+1, community:-2 } },
+          { label:"認められたいが、そういう自分を認めたくない",      scores:{ sensitivity:+3, loneliness:+2, nihilism:+1 } },
         ] },
-      { id:"d4_2", text:"「選択肢が多すぎること」は、あなたにとって苦しいですか？",
+      { id:"d4_2",
+        text:"誰かに「すごい」と言われたとき、あなたが感じるのは？",
         options:[
-          { label:"はい、選ぶことが怖くなることがある", scores:{ loneliness:+2, nihilism:+2, freedom:+1 } },
-          { label:"選択肢が多い方が安心する",         scores:{ freedom:+4, idealism:+2 } },
-          { label:"どちらでもない",                  scores:{ realism:+3 } },
-          { label:"選べないことの方が苦しい",         scores:{ freedom:+3, stability:-2 } },
+          { label:"嬉しいが、どこかで「本当に？」と思う",            scores:{ sensitivity:+3, nihilism:+2, loneliness:+1 } },
+          { label:"素直に嬉しい",                                   scores:{ community:+3, emotion:+2, stability:+1 } },
+          { label:"否定したくなる。実際はそうでもないと思う",        scores:{ nihilism:+2, sensitivity:+2, stability:-1 } },
+          { label:"次に期待されることが少し怖くなる",               scores:{ sensitivity:+3, stability:-2, loneliness:+1 } },
         ] },
     ] },
-  { stageId:"s5", theme:"思想の輪郭", themeEn:"CONTOURS OF THOUGHT",
-    intro:"最後に。あなた自身の「思想の輪郭」に触れましょう。",
+  // ── ステージ5: 夜の自己観測 ───────────────────────────────
+  { stageId:"s5", theme:"夜の自己観測", themeEn:"NOCTURNAL SELF",
+    intro:"深夜にだけ現れる、あなたの内側の声を聞いていきます。",
     questions:[
-      { id:"d5_1", text:"「世界は変えられる」という信念を、今も持ち続けていますか？",
+      { id:"d5_1",
+        text:"深夜、一人でいるとき。あなたが考えていることの多くは？",
         options:[
-          { label:"はい、強く信じている",            scores:{ idealism:+5, nihilism:-2 } },
-          { label:"信じたいが、揺れている",           scores:{ idealism:+3, nihilism:+2, romanticism:+1 } },
-          { label:"あまり信じていない",              scores:{ nihilism:+3, realism:+3 } },
-          { label:"世界より、自分を変えることを考える", scores:{ freedom:+3, realism:+2, idealism:+1 } },
+          { label:"過去の後悔や、もっとこうすれば良かったこと",      scores:{ nihilism:+2, loneliness:+2, emotion:+2 } },
+          { label:"誰かのこと。いなくなった人や、気になる人",        scores:{ romanticism:+3, emotion:+3, loneliness:+1 } },
+          { label:"将来への不安。うまくいかなかったら、という想像",  scores:{ sensitivity:+3, stability:-2, idealism:+1 } },
+          { label:"特に何も考えていない。空白がある",               scores:{ nihilism:+3, loneliness:+2, emotion:-1 } },
         ] },
-      { id:"d5_2", text:"「言葉にできない感情」は、存在すると思いますか？",
+      { id:"d5_2",
+        text:"この問いに答えながら、「これは自分のことだ」と感じた瞬間は？",
         options:[
-          { label:"存在する、そしてそれこそが本質だと思う", scores:{ romanticism:+4, emotion:+3 } },
-          { label:"存在するが、言葉にしたいと思う",   scores:{ idealism:+3, emotion:+2 } },
-          { label:"言葉にできないものに意味はない",   scores:{ logic:+5, nihilism:+1 } },
-          { label:"言葉にしないことで守られるものがある", scores:{ loneliness:+3, romanticism:+3 } },
+          { label:"何度かあった。思っていたより正確だった",          scores:{ idealism:+2, emotion:+2, sensitivity:+1 } },
+          { label:"当たっているが、少し怖かった",                   scores:{ sensitivity:+3, loneliness:+2, nihilism:+1 } },
+          { label:"あまり当たっていない。自分はもっと複雑",         scores:{ nihilism:+2, freedom:+2, logic:+1 } },
+          { label:"言語化されること自体に、違和感があった",         scores:{ loneliness:+2, nihilism:+2, logic:+2 } },
         ] },
-      { id:"d5_3", text:"この問いを終えて、あなたは自分についてどう感じていますか？",
+      { id:"d5_3",
+        text:"診断が終わった後、最初に何をすると思う？",
         options:[
-          { label:"少し、自分が見えた気がする",       scores:{ idealism:+2, romanticism:+1 } },
-          { label:"変わらない。答えは出ない",         scores:{ nihilism:+3, realism:+2 } },
-          { label:"言語化することの限界を感じた",     scores:{ loneliness:+2, logic:+2 } },
-          { label:"考えること自体が、少し怖かった",   scores:{ loneliness:+3, nihilism:+2 } },
+          { label:"誰かに共有する",                                scores:{ community:+3, emotion:+2 } },
+          { label:"スクリーンショットを保存する",                  scores:{ loneliness:+2, sensitivity:+2 } },
+          { label:"もう一度見直す。もっとよく読む",                scores:{ logic:+2, idealism:+2, curiosity:+2 } },
+          { label:"閉じる。感情が落ち着くまで",                   scores:{ loneliness:+2, nihilism:+1, sensitivity:+2 } },
         ] },
     ] },
 ];
@@ -558,45 +849,40 @@ const PHILOSOPHERS = [
 // ══════════════════════════════════════════════════════════════
 const THOUGHT_TYPES = [
 
-  // ── 明るめ / 穏やか系
+  // ── 明るめ / 穏やか系（偏りを補正）
   {
     id:"quiet_idealist", name:"静かな理想家",
     color:"#7ab8d8", sub:"世界はもう少しよくなれると、静かに信じている",
     glow:["rgba(30,80,150,0.55)","rgba(20,70,130,0.4)","rgba(15,60,120,0.25)"],
-    peerPct: 8,  // 全ユーザー中の割合（%）
-    xText:"Noema診断結果｜静かな理想家\n\n「あなたは理想を信じながら、現実に傷つく瞬間を繰り返している。それでも手放せないのは、信じることがあなたの形だから。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「希望を声にしないのは、それを大切にしているからだ。」— #Noema深夜診断",
     cond:(t) => t.idealism>=62 && t.emotion>=55 && t.community>=52,
   },
   {
     id:"gentle_optimist", name:"小さな楽観主義者",
     color:"#78c890", sub:"悪いことの中にも、見逃せない小ささの良さがある",
     glow:["rgba(20,100,60,0.5)","rgba(15,90,50,0.35)","rgba(10,80,40,0.22)"],
-    peerPct: 11,
-    xText:"Noema診断結果｜小さな楽観主義者\n\n「あなたは楽観的に見せながら、その裏に誰より丁寧な現実認識がある。明るさは無知ではなく、傷ついた後の選択だ。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「絶望と楽観の間の、狭い場所に立っている。」— #Noema深夜診断",
     cond:(t) => t.idealism>=58 && t.realism>=55 && t.nihilism<=48,
   },
   {
     id:"calm_mediator", name:"穏やかな調停者",
     color:"#82c4a0", sub:"正しさより、つながることを選ぶ",
     glow:["rgba(20,95,65,0.5)","rgba(15,85,55,0.38)","rgba(12,75,48,0.24)"],
-    peerPct: 7,
-    xText:"Noema診断結果｜穏やかな調停者\n\n「あなたは誰かのために動きながら、自分の感情を一番後回しにしている。それに気づいているが、変え方がわからないでいる。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「対立の間に立つことが、最も誠実な場所だと思っている。」— #Noema深夜診断",
     cond:(t) => t.community>=63 && t.emotion>=58 && t.nihilism<=50,
   },
   {
     id:"soft_realist", name:"やわらかな現実主義者",
     color:"#c8a870", sub:"夢は持ちながら、足は地面にある",
     glow:["rgba(110,75,20,0.5)","rgba(100,65,15,0.38)","rgba(90,60,18,0.24)"],
-    peerPct: 9,
-    xText:"Noema診断結果｜やわらかな現実主義者\n\n「あなたは現実を直視しながら、それに収まりたくない衝動が同時に存在している。その矛盾を、うまく説明できないまま生きている。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「現実的でいることは、諦めることではない。」— #Noema深夜診断",
     cond:(t) => t.realism>=62 && t.stability>=55 && t.community>=50,
   },
   {
     id:"tender_wanderer", name:"余白を愛する人",
     color:"#b8a8d8", sub:"決めないことが、時に最も誠実な答えになる",
     glow:["rgba(80,60,150,0.5)","rgba(70,50,135,0.38)","rgba(60,42,120,0.24)"],
-    peerPct: 6,
-    xText:"Noema診断結果｜余白を愛する人\n\n「あなたは漂っているように見えて、内側には確固たる価値観がある。ただし、それを名付けることを拒んでいる。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「余白の中に、まだ言葉になっていない何かがある。」— #Noema深夜診断",
     cond:(t) => t.romanticism>=60 && t.emotion>=58 && t.freedom>=52 && t.nihilism<=52,
   },
 
@@ -605,40 +891,35 @@ const THOUGHT_TYPES = [
     id:"night_observer", name:"夜の観察者",
     color:"#8a9ab8", sub:"見ることで、参加せずに関わっている",
     glow:["rgba(40,55,110,0.6)","rgba(55,40,100,0.45)","rgba(30,48,90,0.28)"],
-    peerPct: 5,
-    xText:"Noema診断結果｜夜の観察者\n\n「あなたは誰よりも多くのことを感じているのに、誰よりも感情的に見えないようにしている。その矛盾が、内側でずっと鳴っている。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「観察者であることは、距離ではなく深さの問題だ。」— #Noema深夜診断",
     cond:(t) => t.logic>=63 && t.loneliness>=58 && t.emotion<=50,
   },
   {
     id:"deep_thinker", name:"眠れない思索家",
     color:"#9888c8", sub:"答えが出ない問いほど、手放せなくなる",
     glow:["rgba(70,45,145,0.6)","rgba(60,35,130,0.45)","rgba(50,28,115,0.28)"],
-    peerPct: 6,
-    xText:"Noema診断結果｜眠れない思索家\n\n「あなたは考えれば考えるほど、正しい答えから遠ざかっていく気がしている。それでも考えることをやめられない。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「眠れない夜は、思考が最も澄んでいる。」— #Noema深夜診断",
     cond:(t) => t.logic>=60 && t.idealism>=58 && t.stability<=50,
   },
   {
     id:"word_seeker", name:"言葉を探す人",
     color:"#a8b8d0", sub:"感じていることの、正確な言葉を探し続けている",
     glow:["rgba(50,75,130,0.55)","rgba(40,65,115,0.4)","rgba(32,55,100,0.26)"],
-    peerPct: 7,
-    xText:"Noema診断結果｜言葉を探す人\n\n「あなたは理解されたいのではなく、理解しようとされることが怖いのかもしれない。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「言葉にならないものを、言葉にしようとすることが、私のすることだ。」— #Noema深夜診断",
     cond:(t) => t.emotion>=60 && t.logic>=58 && t.loneliness>=52,
   },
   {
     id:"lone_explorer", name:"孤独な探求者",
     color:"#7898c8", sub:"答えより、問い続けることに意味を見出している",
     glow:["rgba(25,65,140,0.6)","rgba(20,55,125,0.45)","rgba(15,48,110,0.28)"],
-    peerPct: 5,
-    xText:"Noema診断結果｜孤独な探求者\n\n「あなたは探求しているように見えて、本当は安心できる場所を探しているだけかもしれない。その区別が、自分でもついていない。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「探すことをやめた瞬間に、何かが終わる気がしている。」— #Noema深夜診断",
     cond:(t) => t.idealism>=60 && t.loneliness>=60 && t.freedom>=55,
   },
   {
     id:"horizon_watcher", name:"遠くを見ている人",
     color:"#88aac8", sub:"今ここにいながら、どこか遠くを向いている",
     glow:["rgba(30,70,130,0.55)","rgba(22,60,115,0.4)","rgba(15,52,100,0.26)"],
-    peerPct: 6,
-    xText:"Noema診断結果｜遠くを見ている人\n\n「あなたは今いる場所が終着点だとは、どうしても思えないでいる。でもどこへ向かうかも、まだ分からない。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「遠くを見る目には、今が映っている。」— #Noema深夜診断",
     cond:(t) => t.romanticism>=62 && t.idealism>=58 && t.community<=50,
   },
 
@@ -647,24 +928,21 @@ const THOUGHT_TYPES = [
     id:"quiet_rebel", name:"静かな革命家",
     color:"#c87888", sub:"声を上げないが、信じていることは変わらない",
     glow:["rgba(130,35,55,0.58)","rgba(115,28,45,0.43)","rgba(100,22,38,0.27)"],
-    peerPct: 4,
-    xText:"Noema診断結果｜静かな革命家\n\n「あなたは「違う」と言う代わりに、ただそこにいないことを選んできた。それを反抗とは呼ばない。ただ、従えない理由が消えないだけだ。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「静かに、しかし確かに、自分の方向へ進んでいる。」— #Noema深夜診断",
     cond:(t) => t.freedom>=65 && t.idealism>=60 && t.community<=48,
   },
   {
     id:"free_rebel", name:"自由な反抗者",
     color:"#d87858", sub:"型にはまることを、どこかで恐れている",
     glow:["rgba(140,55,20,0.58)","rgba(125,45,15,0.43)","rgba(110,38,12,0.27)"],
-    peerPct: 4,
-    xText:"Noema診断結果｜自由な反抗者\n\n「あなたは自由を求めているが、本当に自由になれるのか、少し怖い気もしている。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「反抗は目的ではない。ただ、従えない何かがあるだけだ。」— #Noema深夜診断",
     cond:(t) => t.freedom>=68 && t.stability<=45 && t.nihilism<=55,
   },
   {
     id:"lone_sailor", name:"ひとりの航海者",
     color:"#5898c8", sub:"どこへ向かうかより、どう航るかを考えている",
     glow:["rgba(18,68,145,0.58)","rgba(12,58,128,0.43)","rgba(8,48,112,0.27)"],
-    peerPct: 4,
-    xText:"Noema診断結果｜ひとりの航海者\n\n「あなたは一人の航海が最も正直な時間だと思っている。でも港に戻ったとき、そこがまだ自分の場所かどうか確かめるのが怖い。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「港を出た先に、何があるかは誰も知らない。」— #Noema深夜診断",
     cond:(t) => t.freedom>=62 && t.loneliness>=62 && t.community<=48,
   },
 
@@ -673,68 +951,60 @@ const THOUGHT_TYPES = [
     id:"emotion_collector", name:"感情の収集家",
     color:"#d888a8", sub:"喜びも悲しみも、全部大切にとっておきたい",
     glow:["rgba(150,40,80,0.55)","rgba(132,32,68,0.4)","rgba(115,25,58,0.26)"],
-    peerPct: 8,
-    xText:"Noema診断結果｜感情の収集家\n\n「あなたは感情を持ちすぎていることを、弱さだと思ってきた。でもそれは、ただ正直なだけだ。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「感じることをやめたら、私は何を持っているだろう。」— #Noema深夜診断",
     cond:(t) => t.emotion>=65 && t.romanticism>=58 && t.nihilism<=50,
   },
   {
     id:"deep_romanticist", name:"深夜のロマン主義者",
     color:"#c878d8", sub:"感情の深さを、理性よりも信頼している",
     glow:["rgba(110,35,145,0.6)","rgba(95,28,128,0.45)","rgba(80,22,112,0.28)"],
-    peerPct: 7,
-    xText:"Noema診断結果｜深夜のロマン主義者\n\n「あなたは深夜にだけ本音の自分がいて、朝になるとまたしまい込む。その繰り返しを、誰にも話したことがない。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「深夜だけが、本当のことを語る。」— #Noema深夜診断",
     cond:(t) => t.romanticism>=65 && t.emotion>=62 && t.loneliness>=55,
   },
   {
     id:"boundary_walker", name:"境界を歩く人",
     color:"#98a8b8", sub:"どこにも属さず、どこにもいられる",
     glow:["rgba(50,65,115,0.5)","rgba(42,55,100,0.38)","rgba(34,46,88,0.24)"],
-    peerPct: 5,
-    xText:"Noema診断結果｜境界を歩く人\n\n「あなたはどこにも完全にいないことで、どこにでもいられる。その静かな居場所を、まだ誰にも説明できていない。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「内側でも外側でもない場所が、最も自分らしい。」— #Noema深夜診断",
     cond:(t) => Math.abs(t.freedom - t.stability) <= 12 && Math.abs(t.community - t.loneliness) <= 15,
   },
   {
     id:"meaning_weaver", name:"意味を編む人",
     color:"#a8c0a8", sub:"日常の中に、小さな意味を見つけ続けている",
     glow:["rgba(40,90,55,0.5)","rgba(32,80,46,0.38)","rgba(25,70,38,0.24)"],
-    peerPct: 6,
-    xText:"Noema診断結果｜意味を編む人\n\n「あなたは意味があると信じることで、やっと今日を生きることができている。その根拠が崩れると、根ごと揺らされる。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「意味は見つけるものではなく、作るものだと思っている。」— #Noema深夜診断",
     cond:(t) => t.idealism>=58 && t.realism>=55 && t.emotion>=55 && t.community>=50,
   },
 
-  // ── ニヒル系
+  // ── ニヒル系（従来タイプを閾値修正）
   {
     id:"gentle_nihilist", name:"やさしいニヒリスト",
     color:"#c89858", sub:"虚無を知りながら、それでも誰かに優しくできる",
     glow:["rgba(100,60,20,0.6)","rgba(90,50,15,0.45)","rgba(80,55,20,0.3)"],
-    peerPct: 8,
-    xText:"Noema診断結果｜やさしいニヒリスト\n\n「あなたは「どうせ」と思いながら、まだどうにかしようとしている。その矛盾が、あなたの正直さだ。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「虚無と優しさは、同じ場所から来ているかもしれない。」— #Noema深夜診断",
     cond:(t) => t.nihilism>=60 && t.emotion>=55,
   },
   {
     id:"solitary_nihilist", name:"孤独な虚無論者",
     color:"#7a8bb8", sub:"意味の不在を知りながら、それでも問い続けている",
     glow:["rgba(40,45,120,0.7)","rgba(60,30,110,0.5)","rgba(20,50,100,0.35)"],
-    peerPct: 6,
-    xText:"Noema診断結果｜孤独な虚無論者\n\n「あなたは誰かに期待することをやめたのではなく、期待して裏切られることに、もう耐えられなくなっただけだ。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「虚無を知っている人間は、それでも朝に目を覚ます。」— #Noema深夜診断",
     cond:(t) => t.nihilism>=65 && t.loneliness>=62,
   },
   {
     id:"logical_skeptic", name:"冷静な懐疑論者",
     color:"#4a9aab", sub:"疑うことで、最も誠実でいられると思っている",
     glow:["rgba(15,75,100,0.6)","rgba(10,65,90,0.45)","rgba(8,55,80,0.3)"],
-    peerPct: 5,
-    xText:"Noema診断結果｜冷静な懐疑論者\n\n「あなたは感情を分析することで、感情から一歩引いて生きてきた。でもその分析は、時に感じることを邪魔する。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「疑うことは、信じることより誠実かもしれない。」— #Noema深夜診断",
     cond:(t) => t.logic>=65 && t.nihilism>=55 && t.romanticism<=50,
   },
 
-  // ── デフォルト
+  // ── デフォルト（全条件に当てはまらない場合）
   {
     id:"border_dweller", name:"境界の住人",
     color:"#8898b8", sub:"どこにでも、どこにもいない。それが自分の場所",
     glow:["rgba(40,55,110,0.55)","rgba(55,35,100,0.4)","rgba(30,50,90,0.28)"],
-    peerPct: 5,
-    xText:"Noema診断結果｜境界の住人\n\n「あなたは分類されることに少し安心しながら、分類されきることを少し嫌がっている。その矛盾が、あなたの正直さかもしれない。」\n\n#Noema深夜診断 #自己理解",
+    xText:"「どちらでもなく、どちらでもある。それが私の場所だ。」— #Noema深夜診断",
     cond:(_) => true,
   },
 ];
@@ -3266,7 +3536,7 @@ function useSaveImage(cardRef, wrapperRef) {
           ) {
             try {
               await navigator.share({
-                title: "Noema — 深夜自己理解診断 結果",
+                title: "AI思想チェッカー — 診断結果",
                 files: [new File([blob], filename, { type: "image/png" })],
               });
             } catch (e) {
@@ -4709,7 +4979,7 @@ export default function App() {
                   filter:"blur(12px)", transform:"translateY(2px) scale(1.01)",
                   pointerEvents:"none", userSelect:"none",
                 }}>
-                  Noema
+                  AI 思想チェッカー
                 </h1>
                 {/* 本体タイトル */}
                 <h1 className="home-title" style={{
@@ -4720,7 +4990,7 @@ export default function App() {
                   background:"linear-gradient(160deg,rgba(228,233,248,0.97) 0%,rgba(145,178,230,0.93) 42%,rgba(168,132,218,0.9) 100%)",
                   WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
                 }}>
-                  Noema
+                  AI 思想チェッカー
                 </h1>
               </div>
 
@@ -4741,7 +5011,7 @@ export default function App() {
                 lineHeight:2.05, maxWidth:360, margin:"0 auto 36px", fontWeight:200 }}>
                 {isMidnight
                   ? <>深夜にしか出てこない言葉がある。<br />今夜、少し正直になってみる。</>
-                  : <>あなたの内面パターンを分析します。<br />思考・感情の癖を静かに可視化する。</>
+                  : <>あなたの内面パターンを分析します。<br />思考と感情の癖を、静かに可視化する。</>
                 }
               </p>
 
@@ -4783,16 +5053,16 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 項目グリッド — 自己理解寄り */}
+                {/* 項目グリッド */}
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px 16px" }}>
                   {[
-                    ["孤独耐性",     "loneliness index"],
-                    ["承認欲求",     "approval need"],
-                    ["感情抑制度",   "emotion suppression"],
-                    ["回避傾向",     "avoidance pattern"],
-                    ["対人防御力",   "social defense"],
-                    ["現実逃避度",   "escapism"],
-                    ["深夜感受性",   "nocturnal sensitivity"],
+                    ["自由 ↔ 安定",   "freedom / stability"],
+                    ["理想 ↔ 現実",   "idealism / realism"],
+                    ["論理 ↔ 感情",   "logic / emotion"],
+                    ["孤独耐性",       "loneliness index"],
+                    ["虚無傾向",       "nihilism score"],
+                    ["ロマン主義",     "romanticism"],
+                    ["共同体志向",     "community"],
                     ["愛着スタイル", "attachment style"],
                   ].map(([jp, en], i) => (
                     <div key={i} style={{ display:"flex", flexDirection:"column", gap:2,
@@ -4812,9 +5082,9 @@ export default function App() {
                   borderTop:"1px solid rgba(255,255,255,0.04)",
                   display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontFamily:"var(--f-mono)", fontSize:8,
-                    color:"rgba(70,110,170,0.5)", letterSpacing:"0.15em" }}>14 AXES · PSYCH ANALYSIS</span>
+                    color:"rgba(70,110,170,0.5)", letterSpacing:"0.15em" }}>10 AXES · 8 QUESTIONS</span>
                   <span style={{ fontFamily:"var(--f-mono)", fontSize:8,
-                    color:"rgba(80,160,130,0.6)", letterSpacing:"0.12em" }}>AI-POWERED TYPING</span>
+                    color:"rgba(80,160,130,0.6)", letterSpacing:"0.12em" }}>SCORE-BASED TYPING</span>
                 </div>
               </div>
 
@@ -5809,121 +6079,6 @@ export default function App() {
                 </div>
               ))}
             </Card>
-
-            {/* ── 同タイプユーザー比較パネル ── */}
-            {result && (() => {
-              const typeEntry = THOUGHT_TYPES.find(t => t.name === result.typeName);
-              const peerPct   = typeEntry?.peerPct ?? 6;
-              // 隣接する「似たタイプ」を2つ選ぶ（同系統のタイプ）
-              const similarTypes = THOUGHT_TYPES
-                .filter(t => t.id !== typeEntry?.id && t.color !== typeEntry?.color)
-                .slice(0, 2);
-
-              // ユーザーの指数と「平均」を比較するラベル
-              const vi = result.psych?.visualIndices;
-              const comparisons = vi ? [
-                { label:"孤独耐性", val:vi.lonelinessTolerance, avg:52, color:"#8890a8" },
-                { label:"承認欲求", val:vi.approvalNeed,        avg:55, color:"#c87ac8" },
-                { label:"感情抑制", val:vi.emotionSuppression,  avg:48, color:"#7aaedd" },
-              ] : [];
-
-              return (
-                <div className="result-card-stagger glass-card" style={{
-                  marginBottom:16,
-                  background:"rgba(15,25,55,0.1)",
-                  border:"1px solid rgba(60,80,160,0.18)",
-                }}>
-                  <div className="archive-bar" style={{ marginBottom:12 }}>
-                    <div className="archive-dot" />
-                    <span className="archive-tag">PEER ANALYSIS</span>
-                    <span className="archive-id">同タイプ比較</span>
-                  </div>
-
-                  {/* 同タイプ割合 */}
-                  <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:18,
-                    padding:"12px 16px",
-                    background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.05)",
-                    borderRadius:12 }}>
-                    <div style={{ textAlign:"center", flexShrink:0 }}>
-                      <div style={{ fontFamily:"var(--f-serif)", fontStyle:"italic",
-                        fontSize:36, color:result.typeColor, fontWeight:300, lineHeight:1 }}>
-                        {peerPct}%
-                      </div>
-                      <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
-                        color:"rgba(100,120,170,0.55)", letterSpacing:"0.12em", marginTop:2 }}>
-                        SAME TYPE
-                      </div>
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontFamily:"var(--f-jp)", fontSize:12,
-                        color:"rgba(175,192,228,0.82)", fontWeight:300, lineHeight:1.8 }}>
-                        診断ユーザーの<span style={{ color:result.typeColor }}>{peerPct}%</span>が<br />
-                        あなたと同じ「{result.typeName}」でした。
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 平均との比較 */}
-                  {comparisons.length > 0 && (
-                    <div style={{ marginBottom:16 }}>
-                      <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
-                        color:"rgba(80,110,160,0.5)", letterSpacing:"0.18em", marginBottom:10 }}>
-                        VS AVERAGE
-                      </div>
-                      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                        {comparisons.map(({ label, val, avg, color }) => {
-                          const diff    = val - avg;
-                          const diffLabel = diff > 8 ? "平均より高め" : diff < -8 ? "平均より低め" : "平均的";
-                          return (
-                            <div key={label} style={{ display:"flex", alignItems:"center", gap:12 }}>
-                              <div style={{ fontFamily:"var(--f-jp)", fontSize:11, fontWeight:200,
-                                color:"rgba(165,180,218,0.75)", width:64, flexShrink:0 }}>{label}</div>
-                              <div style={{ flex:1, position:"relative", height:4,
-                                background:"rgba(255,255,255,0.04)", borderRadius:999, overflow:"visible" }}>
-                                {/* 平均ライン */}
-                                <div style={{ position:"absolute", left:`${avg}%`, top:-2,
-                                  width:1, height:8, background:"rgba(255,255,255,0.15)" }} />
-                                {/* 自分の値 */}
-                                <div style={{ height:"100%", width:`${val}%`,
-                                  background:`linear-gradient(90deg,${color}44,${color}cc)`,
-                                  borderRadius:999 }} />
-                              </div>
-                              <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
-                                color:`${color}99`, letterSpacing:"0.08em", flexShrink:0, width:64,
-                                textAlign:"right" }}>{diffLabel}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 似たタイプ */}
-                  <div>
-                    <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
-                      color:"rgba(80,110,160,0.5)", letterSpacing:"0.18em", marginBottom:10 }}>
-                      SIMILAR TYPES
-                    </div>
-                    <div style={{ display:"flex", gap:8 }}>
-                      {similarTypes.map(st => (
-                        <div key={st.id} style={{ flex:1, padding:"9px 12px",
-                          background:"rgba(255,255,255,0.018)",
-                          border:`1px solid ${st.color}22`, borderRadius:10 }}>
-                          <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
-                            color:st.color, opacity:0.7, letterSpacing:"0.12em", marginBottom:4 }}>
-                            {st.peerPct}%
-                          </div>
-                          <div style={{ fontFamily:"var(--f-jp)", fontSize:11, fontWeight:300,
-                            color:"rgba(175,195,230,0.8)", lineHeight:1.5 }}>{st.name}</div>
-                          <div style={{ fontFamily:"var(--f-jp)", fontSize:9, fontWeight:200,
-                            color:"rgba(110,130,175,0.6)", marginTop:3, lineHeight:1.5 }}>{st.sub}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* ── SNS共有パネル ── */}
             <div className="result-card-stagger share-panel"
