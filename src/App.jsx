@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-//  AI思想チェッカー — v5.0 UI Refined
+//  Noema — v6.0 深夜自己理解診断
 //  Vite React · ロジック完全保持 · UI/アニメーション全面刷新
 // ═══════════════════════════════════════════════════════════════
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -558,40 +558,45 @@ const PHILOSOPHERS = [
 // ══════════════════════════════════════════════════════════════
 const THOUGHT_TYPES = [
 
-  // ── 明るめ / 穏やか系（偏りを補正）
+  // ── 明るめ / 穏やか系
   {
     id:"quiet_idealist", name:"静かな理想家",
     color:"#7ab8d8", sub:"世界はもう少しよくなれると、静かに信じている",
     glow:["rgba(30,80,150,0.55)","rgba(20,70,130,0.4)","rgba(15,60,120,0.25)"],
-    xText:"「希望を声にしないのは、それを大切にしているからだ。」— #AI思想チェッカー",
+    peerPct: 8,  // 全ユーザー中の割合（%）
+    xText:"Noema診断結果｜静かな理想家\n\n「あなたは理想を信じながら、現実に傷つく瞬間を繰り返している。それでも手放せないのは、信じることがあなたの形だから。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.idealism>=62 && t.emotion>=55 && t.community>=52,
   },
   {
     id:"gentle_optimist", name:"小さな楽観主義者",
     color:"#78c890", sub:"悪いことの中にも、見逃せない小ささの良さがある",
     glow:["rgba(20,100,60,0.5)","rgba(15,90,50,0.35)","rgba(10,80,40,0.22)"],
-    xText:"「絶望と楽観の間の、狭い場所に立っている。」— #AI思想チェッカー",
+    peerPct: 11,
+    xText:"Noema診断結果｜小さな楽観主義者\n\n「あなたは楽観的に見せながら、その裏に誰より丁寧な現実認識がある。明るさは無知ではなく、傷ついた後の選択だ。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.idealism>=58 && t.realism>=55 && t.nihilism<=48,
   },
   {
     id:"calm_mediator", name:"穏やかな調停者",
     color:"#82c4a0", sub:"正しさより、つながることを選ぶ",
     glow:["rgba(20,95,65,0.5)","rgba(15,85,55,0.38)","rgba(12,75,48,0.24)"],
-    xText:"「対立の間に立つことが、最も誠実な場所だと思っている。」— #AI思想チェッカー",
+    peerPct: 7,
+    xText:"Noema診断結果｜穏やかな調停者\n\n「あなたは誰かのために動きながら、自分の感情を一番後回しにしている。それに気づいているが、変え方がわからないでいる。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.community>=63 && t.emotion>=58 && t.nihilism<=50,
   },
   {
     id:"soft_realist", name:"やわらかな現実主義者",
     color:"#c8a870", sub:"夢は持ちながら、足は地面にある",
     glow:["rgba(110,75,20,0.5)","rgba(100,65,15,0.38)","rgba(90,60,18,0.24)"],
-    xText:"「現実的でいることは、諦めることではない。」— #AI思想チェッカー",
+    peerPct: 9,
+    xText:"Noema診断結果｜やわらかな現実主義者\n\n「あなたは現実を直視しながら、それに収まりたくない衝動が同時に存在している。その矛盾を、うまく説明できないまま生きている。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.realism>=62 && t.stability>=55 && t.community>=50,
   },
   {
     id:"tender_wanderer", name:"余白を愛する人",
     color:"#b8a8d8", sub:"決めないことが、時に最も誠実な答えになる",
     glow:["rgba(80,60,150,0.5)","rgba(70,50,135,0.38)","rgba(60,42,120,0.24)"],
-    xText:"「余白の中に、まだ言葉になっていない何かがある。」— #AI思想チェッカー",
+    peerPct: 6,
+    xText:"Noema診断結果｜余白を愛する人\n\n「あなたは漂っているように見えて、内側には確固たる価値観がある。ただし、それを名付けることを拒んでいる。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.romanticism>=60 && t.emotion>=58 && t.freedom>=52 && t.nihilism<=52,
   },
 
@@ -600,35 +605,40 @@ const THOUGHT_TYPES = [
     id:"night_observer", name:"夜の観察者",
     color:"#8a9ab8", sub:"見ることで、参加せずに関わっている",
     glow:["rgba(40,55,110,0.6)","rgba(55,40,100,0.45)","rgba(30,48,90,0.28)"],
-    xText:"「観察者であることは、距離ではなく深さの問題だ。」— #AI思想チェッカー",
+    peerPct: 5,
+    xText:"Noema診断結果｜夜の観察者\n\n「あなたは誰よりも多くのことを感じているのに、誰よりも感情的に見えないようにしている。その矛盾が、内側でずっと鳴っている。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.logic>=63 && t.loneliness>=58 && t.emotion<=50,
   },
   {
     id:"deep_thinker", name:"眠れない思索家",
     color:"#9888c8", sub:"答えが出ない問いほど、手放せなくなる",
     glow:["rgba(70,45,145,0.6)","rgba(60,35,130,0.45)","rgba(50,28,115,0.28)"],
-    xText:"「眠れない夜は、思考が最も澄んでいる。」— #AI思想チェッカー",
+    peerPct: 6,
+    xText:"Noema診断結果｜眠れない思索家\n\n「あなたは考えれば考えるほど、正しい答えから遠ざかっていく気がしている。それでも考えることをやめられない。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.logic>=60 && t.idealism>=58 && t.stability<=50,
   },
   {
     id:"word_seeker", name:"言葉を探す人",
     color:"#a8b8d0", sub:"感じていることの、正確な言葉を探し続けている",
     glow:["rgba(50,75,130,0.55)","rgba(40,65,115,0.4)","rgba(32,55,100,0.26)"],
-    xText:"「言葉にならないものを、言葉にしようとすることが、私のすることだ。」— #AI思想チェッカー",
+    peerPct: 7,
+    xText:"Noema診断結果｜言葉を探す人\n\n「あなたは理解されたいのではなく、理解しようとされることが怖いのかもしれない。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.emotion>=60 && t.logic>=58 && t.loneliness>=52,
   },
   {
     id:"lone_explorer", name:"孤独な探求者",
     color:"#7898c8", sub:"答えより、問い続けることに意味を見出している",
     glow:["rgba(25,65,140,0.6)","rgba(20,55,125,0.45)","rgba(15,48,110,0.28)"],
-    xText:"「探すことをやめた瞬間に、何かが終わる気がしている。」— #AI思想チェッカー",
+    peerPct: 5,
+    xText:"Noema診断結果｜孤独な探求者\n\n「あなたは探求しているように見えて、本当は安心できる場所を探しているだけかもしれない。その区別が、自分でもついていない。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.idealism>=60 && t.loneliness>=60 && t.freedom>=55,
   },
   {
     id:"horizon_watcher", name:"遠くを見ている人",
     color:"#88aac8", sub:"今ここにいながら、どこか遠くを向いている",
     glow:["rgba(30,70,130,0.55)","rgba(22,60,115,0.4)","rgba(15,52,100,0.26)"],
-    xText:"「遠くを見る目には、今が映っている。」— #AI思想チェッカー",
+    peerPct: 6,
+    xText:"Noema診断結果｜遠くを見ている人\n\n「あなたは今いる場所が終着点だとは、どうしても思えないでいる。でもどこへ向かうかも、まだ分からない。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.romanticism>=62 && t.idealism>=58 && t.community<=50,
   },
 
@@ -637,21 +647,24 @@ const THOUGHT_TYPES = [
     id:"quiet_rebel", name:"静かな革命家",
     color:"#c87888", sub:"声を上げないが、信じていることは変わらない",
     glow:["rgba(130,35,55,0.58)","rgba(115,28,45,0.43)","rgba(100,22,38,0.27)"],
-    xText:"「静かに、しかし確かに、自分の方向へ進んでいる。」— #AI思想チェッカー",
+    peerPct: 4,
+    xText:"Noema診断結果｜静かな革命家\n\n「あなたは「違う」と言う代わりに、ただそこにいないことを選んできた。それを反抗とは呼ばない。ただ、従えない理由が消えないだけだ。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.freedom>=65 && t.idealism>=60 && t.community<=48,
   },
   {
     id:"free_rebel", name:"自由な反抗者",
     color:"#d87858", sub:"型にはまることを、どこかで恐れている",
     glow:["rgba(140,55,20,0.58)","rgba(125,45,15,0.43)","rgba(110,38,12,0.27)"],
-    xText:"「反抗は目的ではない。ただ、従えない何かがあるだけだ。」— #AI思想チェッカー",
+    peerPct: 4,
+    xText:"Noema診断結果｜自由な反抗者\n\n「あなたは自由を求めているが、本当に自由になれるのか、少し怖い気もしている。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.freedom>=68 && t.stability<=45 && t.nihilism<=55,
   },
   {
     id:"lone_sailor", name:"ひとりの航海者",
     color:"#5898c8", sub:"どこへ向かうかより、どう航るかを考えている",
     glow:["rgba(18,68,145,0.58)","rgba(12,58,128,0.43)","rgba(8,48,112,0.27)"],
-    xText:"「港を出た先に、何があるかは誰も知らない。」— #AI思想チェッカー",
+    peerPct: 4,
+    xText:"Noema診断結果｜ひとりの航海者\n\n「あなたは一人の航海が最も正直な時間だと思っている。でも港に戻ったとき、そこがまだ自分の場所かどうか確かめるのが怖い。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.freedom>=62 && t.loneliness>=62 && t.community<=48,
   },
 
@@ -660,60 +673,68 @@ const THOUGHT_TYPES = [
     id:"emotion_collector", name:"感情の収集家",
     color:"#d888a8", sub:"喜びも悲しみも、全部大切にとっておきたい",
     glow:["rgba(150,40,80,0.55)","rgba(132,32,68,0.4)","rgba(115,25,58,0.26)"],
-    xText:"「感じることをやめたら、私は何を持っているだろう。」— #AI思想チェッカー",
+    peerPct: 8,
+    xText:"Noema診断結果｜感情の収集家\n\n「あなたは感情を持ちすぎていることを、弱さだと思ってきた。でもそれは、ただ正直なだけだ。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.emotion>=65 && t.romanticism>=58 && t.nihilism<=50,
   },
   {
     id:"deep_romanticist", name:"深夜のロマン主義者",
     color:"#c878d8", sub:"感情の深さを、理性よりも信頼している",
     glow:["rgba(110,35,145,0.6)","rgba(95,28,128,0.45)","rgba(80,22,112,0.28)"],
-    xText:"「深夜だけが、本当のことを語る。」— #AI思想チェッカー",
+    peerPct: 7,
+    xText:"Noema診断結果｜深夜のロマン主義者\n\n「あなたは深夜にだけ本音の自分がいて、朝になるとまたしまい込む。その繰り返しを、誰にも話したことがない。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.romanticism>=65 && t.emotion>=62 && t.loneliness>=55,
   },
   {
     id:"boundary_walker", name:"境界を歩く人",
     color:"#98a8b8", sub:"どこにも属さず、どこにもいられる",
     glow:["rgba(50,65,115,0.5)","rgba(42,55,100,0.38)","rgba(34,46,88,0.24)"],
-    xText:"「内側でも外側でもない場所が、最も自分らしい。」— #AI思想チェッカー",
+    peerPct: 5,
+    xText:"Noema診断結果｜境界を歩く人\n\n「あなたはどこにも完全にいないことで、どこにでもいられる。その静かな居場所を、まだ誰にも説明できていない。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => Math.abs(t.freedom - t.stability) <= 12 && Math.abs(t.community - t.loneliness) <= 15,
   },
   {
     id:"meaning_weaver", name:"意味を編む人",
     color:"#a8c0a8", sub:"日常の中に、小さな意味を見つけ続けている",
     glow:["rgba(40,90,55,0.5)","rgba(32,80,46,0.38)","rgba(25,70,38,0.24)"],
-    xText:"「意味は見つけるものではなく、作るものだと思っている。」— #AI思想チェッカー",
+    peerPct: 6,
+    xText:"Noema診断結果｜意味を編む人\n\n「あなたは意味があると信じることで、やっと今日を生きることができている。その根拠が崩れると、根ごと揺らされる。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.idealism>=58 && t.realism>=55 && t.emotion>=55 && t.community>=50,
   },
 
-  // ── ニヒル系（従来タイプを閾値修正）
+  // ── ニヒル系
   {
     id:"gentle_nihilist", name:"やさしいニヒリスト",
     color:"#c89858", sub:"虚無を知りながら、それでも誰かに優しくできる",
     glow:["rgba(100,60,20,0.6)","rgba(90,50,15,0.45)","rgba(80,55,20,0.3)"],
-    xText:"「虚無と優しさは、同じ場所から来ているかもしれない。」— #AI思想チェッカー",
+    peerPct: 8,
+    xText:"Noema診断結果｜やさしいニヒリスト\n\n「あなたは「どうせ」と思いながら、まだどうにかしようとしている。その矛盾が、あなたの正直さだ。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.nihilism>=60 && t.emotion>=55,
   },
   {
     id:"solitary_nihilist", name:"孤独な虚無論者",
     color:"#7a8bb8", sub:"意味の不在を知りながら、それでも問い続けている",
     glow:["rgba(40,45,120,0.7)","rgba(60,30,110,0.5)","rgba(20,50,100,0.35)"],
-    xText:"「虚無を知っている人間は、それでも朝に目を覚ます。」— #AI思想チェッカー",
+    peerPct: 6,
+    xText:"Noema診断結果｜孤独な虚無論者\n\n「あなたは誰かに期待することをやめたのではなく、期待して裏切られることに、もう耐えられなくなっただけだ。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.nihilism>=65 && t.loneliness>=62,
   },
   {
     id:"logical_skeptic", name:"冷静な懐疑論者",
     color:"#4a9aab", sub:"疑うことで、最も誠実でいられると思っている",
     glow:["rgba(15,75,100,0.6)","rgba(10,65,90,0.45)","rgba(8,55,80,0.3)"],
-    xText:"「疑うことは、信じることより誠実かもしれない。」— #AI思想チェッカー",
+    peerPct: 5,
+    xText:"Noema診断結果｜冷静な懐疑論者\n\n「あなたは感情を分析することで、感情から一歩引いて生きてきた。でもその分析は、時に感じることを邪魔する。」\n\n#Noema深夜診断 #自己理解",
     cond:(t) => t.logic>=65 && t.nihilism>=55 && t.romanticism<=50,
   },
 
-  // ── デフォルト（全条件に当てはまらない場合）
+  // ── デフォルト
   {
     id:"border_dweller", name:"境界の住人",
     color:"#8898b8", sub:"どこにでも、どこにもいない。それが自分の場所",
     glow:["rgba(40,55,110,0.55)","rgba(55,35,100,0.4)","rgba(30,50,90,0.28)"],
-    xText:"「どちらでもなく、どちらでもある。それが私の場所だ。」— #AI思想チェッカー",
+    peerPct: 5,
+    xText:"Noema診断結果｜境界の住人\n\n「あなたは分類されることに少し安心しながら、分類されきることを少し嫌がっている。その矛盾が、あなたの正直さかもしれない。」\n\n#Noema深夜診断 #自己理解",
     cond:(_) => true,
   },
 ];
@@ -3245,7 +3266,7 @@ function useSaveImage(cardRef, wrapperRef) {
           ) {
             try {
               await navigator.share({
-                title: "AI思想チェッカー — 診断結果",
+                title: "Noema — 深夜自己理解診断 結果",
                 files: [new File([blob], filename, { type: "image/png" })],
               });
             } catch (e) {
@@ -4542,7 +4563,7 @@ export default function App() {
     if (!result) return;
     const typeEntry = THOUGHT_TYPES.find(t => t.name === result.typeName);
     const text = typeEntry?.xText
-      ?? `「${result.quote ?? result.typeName}」— #AI思想チェッカー #Noema`;
+      ?? `「${result.quote ?? result.typeName}」— #Noema深夜診断 #Noema`;
     const url = encodeURIComponent(window.location.href);
     const tweet = encodeURIComponent(text);
     window.open(`https://twitter.com/intent/tweet?text=${tweet}&url=${url}`, "_blank", "noopener");
@@ -4672,7 +4693,7 @@ export default function App() {
                   background:"rgba(80,210,140,0.75)" }} />
                 <span style={{ fontFamily:"var(--f-mono)", fontSize:9,
                   color:"rgba(90,150,215,0.75)", letterSpacing:"0.2em" }}>
-                  思想解析装置 · ONLINE
+                  深夜自己理解 · ONLINE
                 </span>
               </div>
 
@@ -4688,7 +4709,7 @@ export default function App() {
                   filter:"blur(12px)", transform:"translateY(2px) scale(1.01)",
                   pointerEvents:"none", userSelect:"none",
                 }}>
-                  AI 思想チェッカー
+                  Noema
                 </h1>
                 {/* 本体タイトル */}
                 <h1 className="home-title" style={{
@@ -4699,7 +4720,7 @@ export default function App() {
                   background:"linear-gradient(160deg,rgba(228,233,248,0.97) 0%,rgba(145,178,230,0.93) 42%,rgba(168,132,218,0.9) 100%)",
                   WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
                 }}>
-                  AI 思想チェッカー
+                  Noema
                 </h1>
               </div>
 
@@ -4709,7 +4730,7 @@ export default function App() {
                   background:"linear-gradient(90deg,transparent,rgba(80,120,180,0.35))" }} />
                 <span style={{ fontFamily:"var(--f-mono)", fontSize:8,
                   color:"rgba(80,120,180,0.55)", letterSpacing:"0.22em", whiteSpace:"nowrap" }}>
-                  THOUGHT ANALYSIS SYSTEM
+                  INNER SELF ANALYSIS
                 </span>
                 <div className="line-expand" style={{ flex:1, height:1,
                   background:"linear-gradient(90deg,rgba(80,120,180,0.35),transparent)" }} />
@@ -4720,7 +4741,7 @@ export default function App() {
                 lineHeight:2.05, maxWidth:360, margin:"0 auto 36px", fontWeight:200 }}>
                 {isMidnight
                   ? <>深夜にしか出てこない言葉がある。<br />今夜、少し正直になってみる。</>
-                  : <>8つの問いに答えるだけ。<br />あなたが夜に何者であるか、静かに照らす。</>
+                  : <>あなたの内面パターンを分析します。<br />思考・感情の癖を静かに可視化する。</>
                 }
               </p>
 
@@ -4762,17 +4783,17 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 項目グリッド */}
+                {/* 項目グリッド — 自己理解寄り */}
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px 16px" }}>
                   {[
-                    ["自由 ↔ 安定",   "freedom / stability"],
-                    ["理想 ↔ 現実",   "idealism / realism"],
-                    ["論理 ↔ 感情",   "logic / emotion"],
-                    ["孤独耐性",       "loneliness index"],
-                    ["虚無傾向",       "nihilism score"],
-                    ["ロマン主義",     "romanticism"],
-                    ["共同体志向",     "community"],
-                    ["哲学者親和性",   "philosopher affinity"],
+                    ["孤独耐性",     "loneliness index"],
+                    ["承認欲求",     "approval need"],
+                    ["感情抑制度",   "emotion suppression"],
+                    ["回避傾向",     "avoidance pattern"],
+                    ["対人防御力",   "social defense"],
+                    ["現実逃避度",   "escapism"],
+                    ["深夜感受性",   "nocturnal sensitivity"],
+                    ["愛着スタイル", "attachment style"],
                   ].map(([jp, en], i) => (
                     <div key={i} style={{ display:"flex", flexDirection:"column", gap:2,
                       padding:"7px 10px",
@@ -4791,9 +4812,9 @@ export default function App() {
                   borderTop:"1px solid rgba(255,255,255,0.04)",
                   display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontFamily:"var(--f-mono)", fontSize:8,
-                    color:"rgba(70,110,170,0.5)", letterSpacing:"0.15em" }}>10 AXES · 8 QUESTIONS</span>
+                    color:"rgba(70,110,170,0.5)", letterSpacing:"0.15em" }}>14 AXES · PSYCH ANALYSIS</span>
                   <span style={{ fontFamily:"var(--f-mono)", fontSize:8,
-                    color:"rgba(80,160,130,0.6)", letterSpacing:"0.12em" }}>SCORE-BASED TYPING</span>
+                    color:"rgba(80,160,130,0.6)", letterSpacing:"0.12em" }}>AI-POWERED TYPING</span>
                 </div>
               </div>
 
@@ -5788,6 +5809,121 @@ export default function App() {
                 </div>
               ))}
             </Card>
+
+            {/* ── 同タイプユーザー比較パネル ── */}
+            {result && (() => {
+              const typeEntry = THOUGHT_TYPES.find(t => t.name === result.typeName);
+              const peerPct   = typeEntry?.peerPct ?? 6;
+              // 隣接する「似たタイプ」を2つ選ぶ（同系統のタイプ）
+              const similarTypes = THOUGHT_TYPES
+                .filter(t => t.id !== typeEntry?.id && t.color !== typeEntry?.color)
+                .slice(0, 2);
+
+              // ユーザーの指数と「平均」を比較するラベル
+              const vi = result.psych?.visualIndices;
+              const comparisons = vi ? [
+                { label:"孤独耐性", val:vi.lonelinessTolerance, avg:52, color:"#8890a8" },
+                { label:"承認欲求", val:vi.approvalNeed,        avg:55, color:"#c87ac8" },
+                { label:"感情抑制", val:vi.emotionSuppression,  avg:48, color:"#7aaedd" },
+              ] : [];
+
+              return (
+                <div className="result-card-stagger glass-card" style={{
+                  marginBottom:16,
+                  background:"rgba(15,25,55,0.1)",
+                  border:"1px solid rgba(60,80,160,0.18)",
+                }}>
+                  <div className="archive-bar" style={{ marginBottom:12 }}>
+                    <div className="archive-dot" />
+                    <span className="archive-tag">PEER ANALYSIS</span>
+                    <span className="archive-id">同タイプ比較</span>
+                  </div>
+
+                  {/* 同タイプ割合 */}
+                  <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:18,
+                    padding:"12px 16px",
+                    background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.05)",
+                    borderRadius:12 }}>
+                    <div style={{ textAlign:"center", flexShrink:0 }}>
+                      <div style={{ fontFamily:"var(--f-serif)", fontStyle:"italic",
+                        fontSize:36, color:result.typeColor, fontWeight:300, lineHeight:1 }}>
+                        {peerPct}%
+                      </div>
+                      <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
+                        color:"rgba(100,120,170,0.55)", letterSpacing:"0.12em", marginTop:2 }}>
+                        SAME TYPE
+                      </div>
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontFamily:"var(--f-jp)", fontSize:12,
+                        color:"rgba(175,192,228,0.82)", fontWeight:300, lineHeight:1.8 }}>
+                        診断ユーザーの<span style={{ color:result.typeColor }}>{peerPct}%</span>が<br />
+                        あなたと同じ「{result.typeName}」でした。
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 平均との比較 */}
+                  {comparisons.length > 0 && (
+                    <div style={{ marginBottom:16 }}>
+                      <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
+                        color:"rgba(80,110,160,0.5)", letterSpacing:"0.18em", marginBottom:10 }}>
+                        VS AVERAGE
+                      </div>
+                      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                        {comparisons.map(({ label, val, avg, color }) => {
+                          const diff    = val - avg;
+                          const diffLabel = diff > 8 ? "平均より高め" : diff < -8 ? "平均より低め" : "平均的";
+                          return (
+                            <div key={label} style={{ display:"flex", alignItems:"center", gap:12 }}>
+                              <div style={{ fontFamily:"var(--f-jp)", fontSize:11, fontWeight:200,
+                                color:"rgba(165,180,218,0.75)", width:64, flexShrink:0 }}>{label}</div>
+                              <div style={{ flex:1, position:"relative", height:4,
+                                background:"rgba(255,255,255,0.04)", borderRadius:999, overflow:"visible" }}>
+                                {/* 平均ライン */}
+                                <div style={{ position:"absolute", left:`${avg}%`, top:-2,
+                                  width:1, height:8, background:"rgba(255,255,255,0.15)" }} />
+                                {/* 自分の値 */}
+                                <div style={{ height:"100%", width:`${val}%`,
+                                  background:`linear-gradient(90deg,${color}44,${color}cc)`,
+                                  borderRadius:999 }} />
+                              </div>
+                              <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
+                                color:`${color}99`, letterSpacing:"0.08em", flexShrink:0, width:64,
+                                textAlign:"right" }}>{diffLabel}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 似たタイプ */}
+                  <div>
+                    <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
+                      color:"rgba(80,110,160,0.5)", letterSpacing:"0.18em", marginBottom:10 }}>
+                      SIMILAR TYPES
+                    </div>
+                    <div style={{ display:"flex", gap:8 }}>
+                      {similarTypes.map(st => (
+                        <div key={st.id} style={{ flex:1, padding:"9px 12px",
+                          background:"rgba(255,255,255,0.018)",
+                          border:`1px solid ${st.color}22`, borderRadius:10 }}>
+                          <div style={{ fontFamily:"var(--f-mono)", fontSize:8,
+                            color:st.color, opacity:0.7, letterSpacing:"0.12em", marginBottom:4 }}>
+                            {st.peerPct}%
+                          </div>
+                          <div style={{ fontFamily:"var(--f-jp)", fontSize:11, fontWeight:300,
+                            color:"rgba(175,195,230,0.8)", lineHeight:1.5 }}>{st.name}</div>
+                          <div style={{ fontFamily:"var(--f-jp)", fontSize:9, fontWeight:200,
+                            color:"rgba(110,130,175,0.6)", marginTop:3, lineHeight:1.5 }}>{st.sub}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── SNS共有パネル ── */}
             <div className="result-card-stagger share-panel"
