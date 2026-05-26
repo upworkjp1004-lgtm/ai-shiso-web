@@ -13,330 +13,439 @@ import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } fro
 // null = 診断終了（runDiagnosisへ）
 // branch軸: freedom / loneliness / nihilism / community / idealism
 // ══════════════════════════════════════════════════════════════
-//  Q_TREE v4.0 — 行動ベース・無意識反応分析型
-//  「何を測られているか直感させない」設計原則
+//  Q_TREE v5.0 — 日常反応・行動分析型
 //
-//  測定構造:
-//  ・行動・反応・習慣を問い → 心理軸を間接測定
-//  ・各分岐が異なる心理パターンへ収束
-//  ・LAYER構造: 0(入口) → 1(分類) → 2(深掘り) → 3(核心) → 4(終端)
+//  設計原則:
+//  ① 感情を直接聞かない → 行動・瞬間反応・日常の違和感を問う
+//  ② 分析意図を隠す → ユーザーが「何を測られているか」を悟らせない
+//  ③ 矛盾を仕掛ける → 前半の選択を後半で揺さぶる
+//  ④ 生活感を持たせる → コンビニ/LINE/エレベーター/帰り道
+//  ⑤ reaction文は「小声・本音感」
 // ══════════════════════════════════════════════════════════════
 const Q_TREE = {
 
-  // ── LAYER 0: 行動の入口（愛着スタイル初期分岐）─────────────
+  // ── LAYER 0: 入口 ──────────────────────────────────────────
+  // 測定: 回避 vs 不安 vs 合理化 の初期分類
+  // 意図を隠す: 「LINEの既読」という日常的な状況から入る
   "root": {
     id:"root", layer:0,
-    text:"既読がずっと返ってこない。あなたが最初にやること。",
+    text:"LINEの既読が、ずっと返ってこない。最初に何をする？",
     reaction: null,
     options:[
       {
         label:"通知を何度も確認してしまう",
-        scores:{ sensitivity:+3, emotion:+3, stability:-2 },
-        nextId:"q_attach_anxious",
+        scores:{ sensitivity:+3, stability:-2, emotion:+2 },
+        nextId:"q_mirror",
       },
       {
-        label:"「忙しいんだろう」と自分を納得させる",
-        scores:{ logic:+3, loneliness:+2, stability:+1 },
+        label:"向こうから来るのを待つ。こちらからは動かない",
+        scores:{ loneliness:+3, freedom:+2, community:-2 },
+        nextId:"q_distance_habit",
+      },
+      {
+        label:"忙しいんだろう、と自分に言い聞かせる",
+        scores:{ logic:+3, stability:+1, nihilism:+1 },
         nextId:"q_rationalize",
       },
       {
-        label:"先に距離を取り始める",
-        scores:{ loneliness:+3, freedom:+2, community:-3 },
-        nextId:"q_attach_avoid",
-      },
-      {
-        label:"「返ってこないのが当たり前」と思っている",
-        scores:{ nihilism:+3, loneliness:+2, community:-2 },
-        nextId:"q_attach_avoid",
+        label:"特に何もしない。そもそも期待していない",
+        scores:{ nihilism:+3, loneliness:+2, idealism:-2 },
+        nextId:"q_distance_habit",
       },
     ],
   },
 
-  // ── LAYER 1A: 不安型ルート（高emotion・低stability）──────────
-  "q_attach_anxious": {
-    id:"q_attach_anxious", layer:1,
-    text:"「また嫌われた」と思う前に、何度確認する？",
-    reaction:"通知を気にしてしまう。その感覚の奥を少し。",
+  // ── LAYER 1A: 過剰監視ルート ───────────────────────────────
+  // 測定: 承認欲求 / 不安型愛着 / 自己監視
+  // 意図を隠す: 「疲れ方」という体の話から入る
+  "q_mirror": {
+    id:"q_mirror", layer:1,
+    text:"会話が盛り上がった後、急に疲れを感じることがある？",
+    reaction:"通知を気にしてしまう。この感じ、少し分かる気がして。",
     options:[
       {
-        label:"気づいたら5回以上見ている",
-        scores:{ sensitivity:+4, stability:-3, idealism:+1 },
-        nextId:"q_wound",
+        label:"ある。楽しかったのに、家に帰るとどっと来る",
+        scores:{ sensitivity:+3, community:+1, stability:-1 },
+        nextId:"q_after_social",
       },
       {
-        label:"2〜3回。気にしてる自分が嫌になる",
-        scores:{ sensitivity:+3, nihilism:+2, stability:-1 },
-        nextId:"q_wound",
+        label:"ある。相手がどう思ったか、ずっと気になる",
+        scores:{ sensitivity:+4, stability:-2, idealism:+1 },
+        nextId:"q_after_social",
       },
       {
-        label:"見るのをやめようとする。でも見る",
-        scores:{ sensitivity:+2, logic:+1, emotion:+2 },
-        nextId:"q_mask_behavior",
+        label:"あまりない。楽しければ元気になる方",
+        scores:{ community:+3, optimism:+2, loneliness:-1 },
+        nextId:"q_connection",
       },
       {
-        label:"返ってこないなら返ってこない、で切り替える",
-        scores:{ logic:+2, stability:+2, nihilism:+1 },
-        nextId:"q_mask_behavior",
+        label:"会話自体が少ないから、あまり分からない",
+        scores:{ loneliness:+3, nihilism:+2, community:-2 },
+        nextId:"q_lone_structure",
       },
     ],
   },
 
-  // ── LAYER 1B: 合理化ルート（logic・回避の検出）───────────────
+  // ── LAYER 1B: 回避・距離ルート ─────────────────────────────
+  // 測定: 回避型愛着 / 孤独依存 / 感情抑圧
+  // 意図を隠す: 「エレベーター」という意外な状況から
+  "q_distance_habit": {
+    id:"q_distance_habit", layer:1,
+    text:"知り合いがエレベーターに乗っているのが見えた。あなたは？",
+    reaction:"待つことを選んだ。その感じの奥が少し気になって。",
+    options:[
+      {
+        label:"次を待つ。声をかけるのが億劫",
+        scores:{ loneliness:+3, freedom:+2, community:-2 },
+        nextId:"q_lone_structure",
+      },
+      {
+        label:"乗る。でも何を話せばいいか考えてしまう",
+        scores:{ sensitivity:+2, stability:-1, community:+1 },
+        nextId:"q_after_social",
+      },
+      {
+        label:"普通に乗って、天気の話でもする",
+        scores:{ community:+3, stability:+2, realism:+1 },
+        nextId:"q_connection",
+      },
+      {
+        label:"状況による。その日の気分で全然違う",
+        scores:{ realism:+2, nihilism:+1, sensitivity:+1 },
+        nextId:"q_mood_structure",
+      },
+    ],
+  },
+
+  // ── LAYER 1C: 合理化ルート ─────────────────────────────────
+  // 測定: 過剰合理化 / 感情抑圧 / 知的防衛
+  // 意図を隠す: 「返信の下書き」という具体的な行動から
   "q_rationalize": {
     id:"q_rationalize", layer:1,
-    text:"傷ついたとき、あなたが最初にすること。",
-    reaction:"「忙しいんだろう」という説明。その後を少し。",
+    text:"返信を考えすぎて、送る前に全部消したことがある？",
+    reaction:"気にしてないフリ、少し慣れてる感じがして。",
     options:[
       {
-        label:"なぜそうなったか、原因を分析し始める",
-        scores:{ logic:+4, rationality:+2, emotion:-2 },
-        nextId:"q_depth_logic",
+        label:"よくある。書き直すうちに送れなくなる",
+        scores:{ sensitivity:+3, stability:-2, logic:+1 },
+        nextId:"q_after_social",
       },
       {
-        label:"誰かに話す。吐き出さないと整理できない",
-        scores:{ community:+3, emotion:+3, loneliness:-1 },
-        nextId:"q_social_pattern",
+        label:"たまにある。長くなりすぎると消す",
+        scores:{ logic:+2, sensitivity:+2, stability:+0 },
+        nextId:"q_mood_structure",
       },
       {
-        label:"何か別のことに集中して、考えないようにする",
-        scores:{ nihilism:+2, stability:+2, loneliness:+1 },
-        nextId:"q_depth_logic",
+        label:"あまりない。書いたらだいたい送る",
+        scores:{ community:+2, stability:+2, optimism:+1 },
+        nextId:"q_connection",
       },
       {
-        label:"しばらく一人でいる。静かにしている",
-        scores:{ loneliness:+3, freedom:+2, community:-1 },
-        nextId:"q_attach_avoid",
+        label:"そもそも長い返信を書かない",
+        scores:{ nihilism:+2, loneliness:+2, freedom:+1 },
+        nextId:"q_lone_structure",
       },
     ],
   },
 
-  // ── LAYER 1C: 回避型ルート（低community・高freedom）──────────
-  "q_attach_avoid": {
-    id:"q_attach_avoid", layer:1,
-    text:"「もっと仲良くなりたい」と思ったとき、何をする？",
-    reaction:"距離を取る。でも近づきたい気持ちも、あるはずで。",
+  // ── LAYER 2A: 社交後の疲れ方 ───────────────────────────────
+  // 測定: 過剰適応 / 自己監視 / 感情麻痺
+  // 仕掛け: 「楽しかった」という前提を揺さぶる
+  "q_after_social": {
+    id:"q_after_social", layer:2,
+    text:"飲み会や集まりの帰り道、一番多い感情は？",
+    reaction:"",
     options:[
       {
-        label:"何もしない。向こうから来るのを待つ",
+        label:"「あの発言、変じゃなかったかな」がループする",
+        scores:{ sensitivity:+4, stability:-2, nihilism:+1 },
+        nextId:"q_wound_pattern",
+      },
+      {
+        label:"楽しかった。でも一人になるとほっとする",
+        scores:{ loneliness:+2, community:+1, stability:+1 },
+        nextId:"q_lone_structure",
+      },
+      {
+        label:"楽しかったし、もっと話せばよかった",
+        scores:{ community:+3, emotion:+2, optimism:+1 },
+        nextId:"q_connection",
+      },
+      {
+        label:"早く家に帰りたい、とずっと思っていた",
         scores:{ loneliness:+3, freedom:+2, community:-2 },
-        nextId:"q_wound",
-      },
-      {
-        label:"連絡したい。でも迷惑かもと思って止まる",
-        scores:{ sensitivity:+3, loneliness:+2, community:+1 },
-        nextId:"q_wound",
-      },
-      {
-        label:"なんとなく話しかけるきっかけを探す",
-        scores:{ community:+2, emotion:+2, logic:+1 },
-        nextId:"q_social_pattern",
-      },
-      {
-        label:"「仲良くなりたい」という感情自体に気づいていない",
-        scores:{ nihilism:+3, loneliness:+3, emotion:-2 },
-        nextId:"q_depth_logic",
+        nextId:"q_lone_structure",
       },
     ],
   },
 
-  // ── LAYER 2A: 傷つきパターン（防衛機制の種類を特定）──────────
-  "q_wound": {
-    id:"q_wound", layer:2,
-    text:"誰かに期待して裏切られた後、しばらく経ってからどうなってる？",
-    reaction:"傷つき方の形が、見えてきた気がして。",
+  // ── LAYER 2B: 孤独の構造 ───────────────────────────────────
+  // 測定: 孤独依存 / 回避型 / 恐れ回避型
+  // 矛盾仕掛け: 「一人が楽」→「でも誰かに必要とされたい夜」
+  "q_lone_structure": {
+    id:"q_lone_structure", layer:2,
+    text:"深夜のコンビニ、誰もいない。その空気、どう感じる？",
+    reaction:"",
     options:[
       {
-        label:"「もう期待しない」と決める。そして実行する",
-        scores:{ nihilism:+4, loneliness:+2, idealism:-2 },
-        nextId:"q_night_self",
-      },
-      {
-        label:"まだ気にしている。忘れたくても戻ってくる",
-        scores:{ emotion:+3, sensitivity:+3, romanticism:+1 },
-        nextId:"q_mask_behavior",
-      },
-      {
-        label:"「自分にも非があったかも」と考え続ける",
-        scores:{ sensitivity:+3, stability:-2, nihilism:+1 },
-        nextId:"q_self_blame",
-      },
-      {
-        label:"意外とすぐ切り替わる。尾を引かない",
-        scores:{ stability:+3, logic:+2, nihilism:+1 },
-        nextId:"q_depth_logic",
-      },
-    ],
-  },
-
-  // ── LAYER 2B: 感情の隠し方（防衛機制の種類）──────────────────
-  "q_mask_behavior": {
-    id:"q_mask_behavior", layer:2,
-    text:"誰かに「大丈夫？」と聞かれたとき、本当は大丈夫じゃない場合。",
-    reaction:"隠し方の癖に、その人の全部がある気がして。",
-    options:[
-      {
-        label:"「大丈夫」と答える。それで終わらせる",
-        scores:{ loneliness:+3, nihilism:+2, community:-1 },
-        nextId:"q_night_self",
-      },
-      {
-        label:"「まあ、ちょっとね」と濁す",
-        scores:{ loneliness:+2, sensitivity:+2, logic:+1 },
-        nextId:"q_night_self",
-      },
-      {
-        label:"冗談っぽく話して、本気じゃないフリをする",
-        scores:{ nihilism:+2, freedom:+2, sensitivity:+1 },
-        nextId:"q_self_blame",
-      },
-      {
-        label:"その場の雰囲気によって変える",
-        scores:{ community:+2, realism:+2, logic:+1 },
-        nextId:"q_social_pattern",
-      },
-    ],
-  },
-
-  // ── LAYER 2C: 論理的防衛（合理化パターン）────────────────────
-  "q_depth_logic": {
-    id:"q_depth_logic", layer:2,
-    text:"感情的になりたくないと思うのは、どんなとき？",
-    reaction:"感情との距離の取り方が、見えてきた気がして。",
-    options:[
-      {
-        label:"誰かに何かを言うとき。感情的に見られたくない",
-        scores:{ logic:+3, loneliness:+2, emotion:-2 },
-        nextId:"q_night_self",
-      },
-      {
-        label:"自分のことを話すとき。弱さを見せたくない",
-        scores:{ loneliness:+3, nihilism:+2, freedom:+1 },
-        nextId:"q_night_self",
-      },
-      {
-        label:"傷ついているとき。崩れるのが怖い",
-        scores:{ sensitivity:+3, stability:-2, idealism:+1 },
-        nextId:"q_self_blame",
-      },
-      {
-        label:"感情的になりたくないと思ったことがあまりない",
-        scores:{ emotion:+3, community:+2, stability:+1 },
-        nextId:"q_social_pattern",
-      },
-    ],
-  },
-
-  // ── LAYER 2D: 社会的パターン（対人距離感）────────────────────
-  "q_social_pattern": {
-    id:"q_social_pattern", layer:2,
-    text:"仲の良い人が増えると、なんとなく疲れてくることがある？",
-    reaction:"人との関係の形が、少し見えてきた気がして。",
-    options:[
-      {
-        label:"ある。関係が増えると、エネルギーが分散する感じ",
+        label:"落ち着く。これくらいが一番自分らしい",
         scores:{ loneliness:+3, freedom:+2, community:-1 },
-        nextId:"q_night_self",
+        nextId:"q_contradiction",    // ← 矛盾を後で突く
       },
       {
-        label:"ある。でもそれより寂しい方が嫌",
-        scores:{ community:+2, emotion:+2, sensitivity:+1 },
-        nextId:"q_self_blame",
+        label:"少し寂しい。でも誰かを呼びたいとは思わない",
+        scores:{ loneliness:+2, nihilism:+2, community:-1 },
+        nextId:"q_contradiction",
       },
       {
-        label:"あまりない。人が増えると元気になる方",
-        scores:{ community:+4, optimism:+2, loneliness:-2 },
-        nextId:"q_belief_final",
+        label:"悪くないけど、誰かと来たかったとも思う",
+        scores:{ romanticism:+2, loneliness:+1, community:+1 },
+        nextId:"q_wound_pattern",
       },
       {
-        label:"人の多さより、深さの問題。浅い関係は疲れる",
-        scores:{ idealism:+3, loneliness:+2, romanticism:+1 },
-        nextId:"q_night_self",
-      },
-    ],
-  },
-
-  // ── LAYER 3A: 自己責任化（認知傾向の核）──────────────────────
-  "q_self_blame": {
-    id:"q_self_blame", layer:3,
-    text:"失敗したとき、一番先に来る考えは？",
-    reaction:"そこに、思考の癖の核心がある気がして。",
-    options:[
-      {
-        label:"「自分のどこが悪かったか」を探し始める",
-        scores:{ sensitivity:+4, stability:-2, nihilism:+2 },
-        nextId:"q_belief_final",
-      },
-      {
-        label:"「次はどうすればいいか」を考える",
-        scores:{ logic:+3, stability:+2, realism:+1 },
-        nextId:"q_belief_final",
-      },
-      {
-        label:"「まあ、こんなもんか」と受け入れる",
-        scores:{ nihilism:+3, realism:+2, idealism:-1 },
-        nextId:"q_night_self",
-      },
-      {
-        label:"しばらく何も考えられなくなる",
-        scores:{ sensitivity:+3, nihilism:+2, stability:-2 },
-        nextId:"q_night_self",
+        label:"あまり何も感じない。ただ買い物をするだけ",
+        scores:{ nihilism:+3, stability:+2, emotion:-1 },
+        nextId:"q_numbness",
       },
     ],
   },
 
-  // ── LAYER 3B: 深夜の自己（核心となる内面）──────────────────
-  "q_night_self": {
-    id:"q_night_self", layer:3,
-    text:"深夜、一人でいるとき。頭の中にいる人は？",
-    reaction:"最も深いところへ。",
+  // ── LAYER 2C: つながりの形 ─────────────────────────────────
+  // 測定: 安定型愛着 / 理想化 / 現実的信頼
+  "q_connection": {
+    id:"q_connection", layer:2,
+    text:"「気が合う」と感じる人と話した後、何が残る？",
+    reaction:"",
     options:[
       {
-        label:"いなくなった誰か。または消えない誰か",
-        scores:{ romanticism:+3, loneliness:+2, emotion:+2 },
-        nextId:"q_belief_final",
+        label:"「また話したい」。その記憶が温かいまま続く",
+        scores:{ community:+3, romanticism:+2, emotion:+2 },
+        nextId:"q_wound_pattern",
+      },
+      {
+        label:"「この関係、続くかな」という少しの不安",
+        scores:{ sensitivity:+3, stability:-1, idealism:+1 },
+        nextId:"q_wound_pattern",
+      },
+      {
+        label:"満足感。でもあまり引きずらない",
+        scores:{ stability:+3, realism:+2, community:+1 },
+        nextId:"q_mood_structure",
+      },
+      {
+        label:"「合う人がいた」という驚き。珍しいことだから",
+        scores:{ loneliness:+2, nihilism:+1, romanticism:+2 },
+        nextId:"q_contradiction",
+      },
+    ],
+  },
+
+  // ── LAYER 2D: 気分の波 ─────────────────────────────────────
+  // 測定: 感情の一貫性 / 現実逃避 / 認知の揺れ
+  "q_mood_structure": {
+    id:"q_mood_structure", layer:2,
+    text:"コンビニの店員の態度が少し冷たかった。その日、どうなる？",
+    reaction:"",
+    options:[
+      {
+        label:"気になって、その日ずっと引っかかる",
+        scores:{ sensitivity:+4, stability:-2, nihilism:+1 },
+        nextId:"q_wound_pattern",
+      },
+      {
+        label:"少し気になるけど、割とすぐ忘れる",
+        scores:{ realism:+2, stability:+1, sensitivity:+1 },
+        nextId:"q_mood_structure_deep",
+      },
+      {
+        label:"全然気にしない。向こうの問題",
+        scores:{ logic:+3, stability:+2, freedom:+1 },
+        nextId:"q_mood_structure_deep",
+      },
+      {
+        label:"「自分が何かしたかな」と考えてしまう",
+        scores:{ sensitivity:+4, stability:-3, nihilism:+1 },
+        nextId:"q_wound_pattern",
+      },
+    ],
+  },
+
+  // ── LAYER 3A: 矛盾検出 ─────────────────────────────────────
+  // 測定: 孤独の実態 / 恐れ回避型 / 理想と現実のギャップ
+  // 仕掛け: 「一人が落ち着く」と答えた人に「でも必要とされたい夜」を突く
+  "q_contradiction": {
+    id:"q_contradiction", layer:3,
+    text:"誰にも必要とされていない気がする夜、ある？",
+    reaction:"一人の方が落ち着く、でもそういう夜もある。両方本当なんだと思う。",
+    options:[
+      {
+        label:"ある。ふとした瞬間にくる",
+        scores:{ loneliness:+3, nihilism:+2, idealism:+1 },
+        nextId:"q_belief",
+      },
+      {
+        label:"ある。でもそれは自分で選んだ結果だと思う",
+        scores:{ nihilism:+2, freedom:+2, loneliness:+1 },
+        nextId:"q_belief",
+      },
+      {
+        label:"あまりない。必要とされることより、自分が納得できるかが大事",
+        scores:{ freedom:+3, idealism:+2, community:-1 },
+        nextId:"q_final",
+      },
+      {
+        label:"よくある。それが一番しんどい",
+        scores:{ loneliness:+4, sensitivity:+2, nihilism:+2 },
+        nextId:"q_belief",
+      },
+    ],
+  },
+
+  // ── LAYER 3B: 傷つきのパターン ─────────────────────────────
+  // 測定: 防衛機制の種類 / 期待と回避 / 感情処理
+  "q_wound_pattern": {
+    id:"q_wound_pattern", layer:3,
+    text:"誰かに優しくされた後、少し距離を取りたくなることがある？",
+    reaction:"",
+    options:[
+      {
+        label:"ある。なんでか分からないけど、引いてしまう",
+        scores:{ loneliness:+3, freedom:+2, community:-2 },
+        nextId:"q_belief",
+      },
+      {
+        label:"ある。「続かないかも」と先に思ってしまう",
+        scores:{ nihilism:+3, loneliness:+2, idealism:-1 },
+        nextId:"q_belief",
+      },
+      {
+        label:"あまりない。素直に受け取れる方",
+        scores:{ community:+3, stability:+2, emotion:+1 },
+        nextId:"q_final",
+      },
+      {
+        label:"「申し訳ない」という気持ちになる",
+        scores:{ sensitivity:+3, stability:-2, idealism:+1 },
+        nextId:"q_belief",
+      },
+    ],
+  },
+
+  // ── LAYER 3C: 感情麻痺 ─────────────────────────────────────
+  // 測定: 感情麻痺 / ニヒリズム / 分離
+  "q_numbness": {
+    id:"q_numbness", layer:3,
+    text:"「自分は大丈夫なのかな」と思う瞬間、最近ある？",
+    reaction:"",
+    options:[
+      {
+        label:"ある。でもその「大丈夫じゃないかも」が何なのか分からない",
+        scores:{ nihilism:+3, loneliness:+2, sensitivity:+1 },
+        nextId:"q_belief",
+      },
+      {
+        label:"あまりない。そういうことを考えることが少ない",
+        scores:{ nihilism:+3, stability:+1, emotion:-2 },
+        nextId:"q_belief",
+      },
+      {
+        label:"よくある。でも誰にも言っていない",
+        scores:{ loneliness:+4, nihilism:+2, community:-1 },
+        nextId:"q_belief",
+      },
+      {
+        label:"ある。だから気を紛らわせることが増えた",
+        scores:{ nihilism:+2, sensitivity:+2, stability:-1 },
+        nextId:"q_belief",
+      },
+    ],
+  },
+
+  // ── LAYER 3D: 気分の深掘り ─────────────────────────────────
+  // 測定: 感情の言語化力 / 自己認識の精度
+  "q_mood_structure_deep": {
+    id:"q_mood_structure_deep", layer:3,
+    text:"「今日、なんかしんどい」と思ったとき、原因が分かる？",
+    reaction:"",
+    options:[
+      {
+        label:"だいたい分かる。人に会いすぎたとか、言い過ぎたとか",
+        scores:{ logic:+3, sensitivity:+2, rationality:+1 },
+        nextId:"q_belief",
+      },
+      {
+        label:"分からないことが多い。気づいたらそうなっている",
+        scores:{ sensitivity:+2, nihilism:+2, stability:-1 },
+        nextId:"q_belief",
+      },
+      {
+        label:"あまりしんどくなることがない",
+        scores:{ stability:+3, logic:+1, nihilism:+1 },
+        nextId:"q_final",
+      },
+      {
+        label:"分かっても、どうしようもないことが多い",
+        scores:{ nihilism:+3, realism:+2, loneliness:+1 },
+        nextId:"q_belief",
+      },
+    ],
+  },
+
+  // ── LAYER 4A: 核心（共通終端前） ───────────────────────────
+  // 測定: 期待と諦め / 理想主義の残存
+  "q_belief": {
+    id:"q_belief", layer:4,
+    text:"「もう少し正直に生きたい」と思ったことはある？",
+    reaction:"ここまで来ると、少し見えてくるものがある。",
+    options:[
+      {
+        label:"ある。でもどうすれば正直になれるか分からない",
+        scores:{ idealism:+3, loneliness:+1, nihilism:+1 },
+        nextId:"q_final",
+      },
+      {
+        label:"ある。でも正直にいると、誰かが傷つく気がしてやめる",
+        scores:{ sensitivity:+3, community:+1, freedom:-1 },
+        nextId:"q_final",
+      },
+      {
+        label:"あまりない。今でも十分正直でいる",
+        scores:{ stability:+2, freedom:+2, realism:+2 },
+        nextId:"q_final",
+      },
+      {
+        label:"「正直に生きる」の意味がよく分からなくなっている",
+        scores:{ nihilism:+3, loneliness:+2, idealism:-1 },
+        nextId:"q_final",
+      },
+    ],
+  },
+
+  // ── LAYER 4B: 終端 ─────────────────────────────────────────
+  // 測定: 感情との関係 / 夜の自己像
+  "q_final": {
+    id:"q_final", layer:4,
+    text:"深夜、一人でいるとき。あなたの頭にいるのは？",
+    reaction:"最後の問いです。",
+    options:[
+      {
+        label:"消えない誰か。特定の人がいる",
+        scores:{ romanticism:+3, loneliness:+2, emotion:+3 },
+        nextId:null,
       },
       {
         label:"昼間の自分と違う自分",
         scores:{ nihilism:+2, loneliness:+2, freedom:+2 },
-        nextId:"q_belief_final",
+        nextId:null,
       },
       {
-        label:"誰もいない。静かな空白がある",
+        label:"誰もいない。静かな空白",
         scores:{ loneliness:+3, nihilism:+2, stability:+1 },
-        nextId:"q_belief_final",
-      },
-      {
-        label:"「なぜこうなっているのか」を考えている自分",
-        scores:{ logic:+2, idealism:+2, curiosity:+3 },
-        nextId:"q_belief_final",
-      },
-    ],
-  },
-
-  // ── LAYER 4: 終端（全分岐の収束）───────────────────────────
-  "q_belief_final": {
-    id:"q_belief_final", layer:4,
-    text:"「幸せになれると思う？」と深夜に聞かれたら。",
-    reaction:"最後の問いです。",
-    options:[
-      {
-        label:"なれると思う。まだ諦めていない",
-        scores:{ idealism:+3, optimism:+3, nihilism:-2 },
         nextId:null,
       },
       {
-        label:"なれるかもしれないが、自分には難しい気がする",
-        scores:{ idealism:+2, loneliness:+2, nihilism:+1 },
-        nextId:null,
-      },
-      {
-        label:"「幸せ」の定義が分からなくなっている",
-        scores:{ nihilism:+3, logic:+2, idealism:-1 },
-        nextId:null,
-      },
-      {
-        label:"考えないようにしている",
-        scores:{ nihilism:+2, stability:+1, emotion:-2, loneliness:+1 },
+        label:"「なぜこうなっているんだろう」を考えている自分",
+        scores:{ logic:+2, idealism:+2, curiosity:+3, loneliness:+1 },
         nextId:null,
       },
     ],
@@ -352,52 +461,52 @@ const QUESTIONS = Object.values(Q_TREE);
 const QUICK_QUESTIONS = [
   {
     id:"q1",
-    text:"誰かとLINEで言い合いになった後、あなたがまず取る行動は？",
+    text:"誰かに優しくされた後、少し距離を取りたくなることがある？",
     options:[
-      { label:"スマホを置く。しばらく見ない",                   scores:{ loneliness:+3, freedom:+2, community:-1 } },
-      { label:"送ったメッセージを何度も読み返す",               scores:{ sensitivity:+3, emotion:+2, stability:-1 } },
-      { label:"気が収まったら謝りたくなる",                     scores:{ community:+3, emotion:+2, stability:+1 } },
-      { label:"「どうでもいい」と思おうとする",                 scores:{ nihilism:+3, loneliness:+2, emotion:-1 } },
+      { label:"ある。なんでか分からないけど引いてしまう",       scores:{ loneliness:+3, freedom:+2, community:-2, nihilism:+1 } },
+      { label:"ある。「また失うかも」と先に思ってしまう",       scores:{ nihilism:+3, sensitivity:+2, loneliness:+2, idealism:-1 } },
+      { label:"あまりない。素直に受け取れる",                  scores:{ community:+3, stability:+2, emotion:+2, optimism:+1 } },
+      { label:"「申し訳ない」という気持ちになってしまう",       scores:{ sensitivity:+4, stability:-2, idealism:+1, community:+1 } },
     ]
   },
   {
     id:"q2",
-    text:"久しぶりに会う人の前日夜、何を考えている？",
+    text:"飲み会の帰り道、「あの発言、変じゃなかったかな」がループしたことがある？",
     options:[
-      { label:"何を話そうか。リストを考える",                   scores:{ logic:+3, stability:+1, sensitivity:+1 } },
-      { label:"うまくやれるか不安になってくる",                 scores:{ sensitivity:+4, stability:-2, idealism:+1 } },
-      { label:"あまり考えない。当日の流れに任せる",             scores:{ optimism:+2, stability:+2, freedom:+1 } },
-      { label:"行くのをやめようかと思い始める",                 scores:{ loneliness:+3, nihilism:+2, community:-2 } },
+      { label:"よくある。家に着いても引きずる",                scores:{ sensitivity:+4, stability:-3, nihilism:+1 } },
+      { label:"たまにある。でも寝たら忘れる",                  scores:{ sensitivity:+2, stability:+1, realism:+1 } },
+      { label:"あまりない。言ったことは仕方ない",              scores:{ stability:+3, logic:+2, freedom:+1 } },
+      { label:"そもそも飲み会にあまり行かない",                scores:{ loneliness:+2, freedom:+2, community:-2 } },
     ]
   },
   {
     id:"q3",
-    text:"自分のことを誰かに話した後、しばらくして何を感じる？",
+    text:"返信を考えすぎて、書いた文章を全部消したことがある？",
     options:[
-      { label:"話しすぎた、と少し後悔する",                     scores:{ loneliness:+3, sensitivity:+2, nihilism:+1 } },
-      { label:"すっきりする。話して良かった",                   scores:{ community:+3, emotion:+3, stability:+1 } },
-      { label:"「どう思われたか」が気になってくる",             scores:{ sensitivity:+3, stability:-2, idealism:+1 } },
-      { label:"特に何も感じない。そんなに話してない",           scores:{ nihilism:+2, loneliness:+2, logic:+1 } },
+      { label:"よくある。長くなると怖くなって消す",            scores:{ sensitivity:+3, stability:-2, loneliness:+1 } },
+      { label:"たまにある。感情的に見えないか心配になる",      scores:{ logic:+2, sensitivity:+2, community:+0 } },
+      { label:"あまりない。書いたらだいたい送る",              scores:{ community:+2, stability:+2, freedom:+1 } },
+      { label:"そもそも長い返信を書かない",                   scores:{ nihilism:+2, loneliness:+2, freedom:+1 } },
     ]
   },
   {
     id:"q4",
-    text:"誰かが自分に怒っていると気づいたとき、最初の行動は？",
+    text:"「今日しんどい」と感じたとき、原因が自分で分かる？",
     options:[
-      { label:"原因を探し始める。どこが悪かったか",             scores:{ sensitivity:+3, logic:+2, stability:-1 } },
-      { label:"その場から離れたくなる",                         scores:{ loneliness:+3, freedom:+3, community:-2 } },
-      { label:"話し合いたいと思う",                             scores:{ community:+3, emotion:+2, stability:+1 } },
-      { label:"「気づかないフリ」をして様子を見る",             scores:{ nihilism:+2, logic:+2, loneliness:+1 } },
+      { label:"だいたい分かる。人に会いすぎたとか",            scores:{ logic:+3, sensitivity:+2, rationality:+1 } },
+      { label:"分からないことが多い。気づいたらそうなってる",   scores:{ sensitivity:+2, nihilism:+2, stability:-1 } },
+      { label:"あまりしんどくなることがない",                  scores:{ stability:+3, logic:+2, nihilism:+1 } },
+      { label:"分かっても、どうしようもないことが多い",         scores:{ nihilism:+3, realism:+2, loneliness:+1 } },
     ]
   },
   {
     id:"q5",
-    text:"何もない深夜、スマホを開いたとき、最初に見るのは？",
+    text:"深夜の一人のコンビニ、その空気をどう感じる？",
     options:[
-      { label:"誰かのSNS。特定の人を探している",               scores:{ romanticism:+3, loneliness:+2, emotion:+2 } },
-      { label:"何となくタイムライン。情報を流し見",             scores:{ nihilism:+2, stability:+2, loneliness:+1 } },
-      { label:"誰かに連絡したい衝動。でも結局しない",           scores:{ loneliness:+3, sensitivity:+2, community:-1 } },
-      { label:"何も見ない。スマホを閉じる",                     scores:{ nihilism:+2, freedom:+2, loneliness:+2 } },
+      { label:"落ち着く。これくらいが一番自分らしい",          scores:{ loneliness:+3, freedom:+3, community:-1 } },
+      { label:"少し寂しい。でも誰かを呼ぼうとは思わない",      scores:{ loneliness:+2, nihilism:+2, community:-1 } },
+      { label:"悪くないけど、誰かと来たかったとも思う",         scores:{ romanticism:+3, loneliness:+1, community:+1, emotion:+2 } },
+      { label:"何も感じない。ただ買い物をするだけ",            scores:{ nihilism:+3, stability:+2, emotion:-2 } },
     ]
   },
 ];
@@ -407,117 +516,174 @@ const QUICK_QUESTIONS = [
 //  DEEP MODE 質問ステージ（5テーマ×2〜3問＝計12問＋AI追質問）
 // ══════════════════════════════════════════════════════════════
 const DEEP_STAGES = [
-  { stageId:"s1", theme:"存在の出発点", themeEn:"ORIGIN OF EXISTENCE",
-    intro:"まず、あなたが「存在している」という感覚から始めましょう。",
+  // ── ステージ1: 日常の反応 ─────────────────────────────────
+  // 測定: 社会疲労 / 過剰適応 / 自己監視
+  // 意図: 「日常あるある」から入り、分析意図を隠す
+  {
+    stageId:"s1", theme:"日常の反応", themeEn:"EVERYDAY REACTIONS",
+    intro:"まず、日常の中でよくある場面から。",
     questions:[
-      { id:"d1_1", text:"あなたが「生きている」と最も強く感じる瞬間はいつですか？",
+      {
+        id:"d1_1",
+        text:"「最近どう？」と聞かれた後、あなたが実際に答えることと、言いたかったことは同じ？",
         options:[
-          { label:"誰かと深く笑ったとき",           scores:{ community:+4, emotion:+3 } },
-          { label:"一人で何かに没頭しているとき",    scores:{ loneliness:+3, logic:+2, freedom:+2 } },
-          { label:"美しいものに出会ったとき",        scores:{ romanticism:+5, emotion:+2 } },
-          { label:"正直言って、よくわからない",      scores:{ nihilism:+3, idealism:-1 } },
-        ] },
-      { id:"d1_2", text:"「自分らしい」という感覚は、あなたにとって実在しますか？",
+          { label:"だいたい同じ。隠すことはあまりない",     scores:{ community:+3, stability:+2, emotion:+2 } },
+          { label:"少し違う。当たり障りなく答えてしまう",   scores:{ loneliness:+2, nihilism:+1, sensitivity:+2 } },
+          { label:"かなり違う。本音は別のところにある",     scores:{ loneliness:+4, nihilism:+2, community:-2 } },
+          { label:"「言いたいこと」が何なのかよく分からない",scores:{ nihilism:+3, loneliness:+2, emotion:-1 } },
+        ]
+      },
+      {
+        id:"d1_2",
+        text:"知らない人にじっと見られていた。あなたが最初に感じるのは？",
         options:[
-          { label:"はっきりと存在する",              scores:{ idealism:+4, freedom:+2 } },
-          { label:"曖昧だが、何かある",              scores:{ romanticism:+3, emotion:+2 } },
-          { label:"「自分らしさ」という概念自体を疑う", scores:{ nihilism:+3, logic:+3 } },
-          { label:"環境によって変わるものだと思う",  scores:{ realism:+4, community:+1 } },
-        ] },
-    ] },
-  { stageId:"s2", theme:"孤独と他者", themeEn:"SOLITUDE AND OTHERS",
-    intro:"あなたと、他者との距離について。",
+          { label:"何か変なところがあったかな、と気になる",  scores:{ sensitivity:+4, stability:-2, community:+1 } },
+          { label:"不快。でもすぐ忘れる",                  scores:{ freedom:+2, stability:+2, realism:+1 } },
+          { label:"特に何も感じない",                      scores:{ nihilism:+2, stability:+2, emotion:-1 } },
+          { label:"向こうの事情だろう、と思う",            scores:{ logic:+3, realism:+2, stability:+1 } },
+        ]
+      },
+    ]
+  },
+
+  // ── ステージ2: 関係の中の自分 ──────────────────────────────
+  // 測定: 回避型 / 不安型 / 恐れ回避型愛着
+  // 意図: 「距離感の話」ではなく「具体的な行動」から
+  {
+    stageId:"s2", theme:"関係の中の自分", themeEn:"SELF IN RELATION",
+    intro:"誰かといるときの、あなたの動き方を少し。",
     questions:[
-      { id:"d2_1", text:"深く理解し合える人間は、存在すると思いますか？",
+      {
+        id:"d2_1",
+        text:"仲良くなりたいと思った人がいる。あなたが自然にやることは？",
         options:[
-          { label:"いる、あるいはいた",              scores:{ community:+4, emotion:+3, loneliness:-2 } },
-          { label:"いるかもしれないが、まだ会っていない", scores:{ romanticism:+3, loneliness:+2 } },
-          { label:"完全には無理だと思う",            scores:{ loneliness:+4, nihilism:+2 } },
-          { label:"そもそも必要とは思わない",        scores:{ freedom:+3, loneliness:+3, community:-3 } },
-        ] },
-      { id:"d2_2", text:"人といるとき、どこか「演じている」と感じますか？",
+          { label:"向こうから来るのを待つ。こちらからは動かない",      scores:{ loneliness:+3, freedom:+2, community:-2 } },
+          { label:"連絡したい。でも「迷惑かも」と思って止まる",        scores:{ sensitivity:+3, loneliness:+2, community:+1 } },
+          { label:"なんとなく話しかけるきっかけを探す",                scores:{ community:+2, emotion:+2, realism:+1 } },
+          { label:"「仲良くなりたい」という感情にあまり気づかない",    scores:{ nihilism:+3, loneliness:+3, emotion:-2 } },
+        ]
+      },
+      {
+        id:"d2_2",
+        text:"誰かが自分の話をよく聞いてくれた日の帰り道、何が残る？",
         options:[
-          { label:"いつもではないが、感じることがある", scores:{ loneliness:+2, logic:+2 } },
-          { label:"かなり頻繁に感じる",              scores:{ loneliness:+4, nihilism:+2, community:-3 } },
-          { label:"あまり感じない、自然でいられる",  scores:{ community:+3, emotion:+2 } },
-          { label:"「本当の自分」という概念に違和感がある", scores:{ nihilism:+3, logic:+3 } },
-        ] },
-      { id:"d2_3", text:"誰かと一緒にいても「孤独」を感じることがありますか？",
+          { label:"「また話したい」。温かい感覚が続く",                scores:{ community:+3, romanticism:+2, emotion:+2 } },
+          { label:"「あんなこと言ってよかったかな」が気になり始める",   scores:{ sensitivity:+4, stability:-2, nihilism:+1 } },
+          { label:"「この関係、続くかな」という少しの不安",            scores:{ sensitivity:+3, idealism:+1, stability:-1 } },
+          { label:"すっきりする。でも引きずらない",                    scores:{ stability:+3, realism:+2, community:+1 } },
+        ]
+      },
+      {
+        id:"d2_3",
+        text:"誰かと深くなりそうになると、どこかで引いてしまうことがある？",
         options:[
-          { label:"よくある",                        scores:{ loneliness:+5, community:-2 } },
-          { label:"たまにある",                      scores:{ loneliness:+2, idealism:+1 } },
-          { label:"あまりない",                      scores:{ community:+3 } },
-          { label:"一人でいるときの方が孤独を感じない", scores:{ freedom:+3, loneliness:+3 } },
-        ] },
-    ] },
-  { stageId:"s3", theme:"意味と虚無", themeEn:"MEANING AND VOID",
-    intro:"存在に意味はあるのか。あなたはどこに立っていますか？",
+          { label:"ある。理由はよく分からないけど",                    scores:{ loneliness:+3, freedom:+3, community:-3 } },
+          { label:"ある。「失うのが怖い」という感覚がある",             scores:{ nihilism:+3, loneliness:+2, sensitivity:+2 } },
+          { label:"あまりない。深くなることが自然",                    scores:{ community:+3, stability:+2, emotion:+1 } },
+          { label:"相手による。選んでいる感じ",                        scores:{ logic:+2, realism:+2, freedom:+1 } },
+        ]
+      },
+    ]
+  },
+
+  // ── ステージ3: 感情の処理 ──────────────────────────────────
+  // 測定: 感情抑圧 / 過剰合理化 / 防衛機制の種類
+  // 意図: 「感情について」ではなく「傷ついた後の行動」
+  {
+    stageId:"s3", theme:"感情の処理", themeEn:"EMOTION PROCESSING",
+    intro:"傷ついたときや、しんどいとき。あなたの中で何が起きているかを。",
     questions:[
-      { id:"d3_1", text:"「なんのために生きているのか」という問いを、どう扱いますか？",
+      {
+        id:"d3_1",
+        text:"傷ついた後、一番先にやること。",
         options:[
-          { label:"真剣に考え続けている",            scores:{ idealism:+3, loneliness:+2 } },
-          { label:"答えはないと思いながら、考える",   scores:{ nihilism:+3, realism:+2 } },
-          { label:"考えないようにしている",           scores:{ stability:+3, realism:+2 } },
-          { label:"そういう問い自体が不毛だと思う",   scores:{ nihilism:+4, logic:+2 } },
-        ] },
-      { id:"d3_2", text:"「意味がない」という感覚は、あなたを軽くしますか、重くしますか？",
+          { label:"一人になる。静かにしていると落ち着く",              scores:{ loneliness:+3, freedom:+2, community:-1 } },
+          { label:"なぜそうなったか、原因を分析し始める",              scores:{ logic:+4, rationality:+2, emotion:-2 } },
+          { label:"誰かに話す。吐き出さないと整理できない",            scores:{ community:+3, emotion:+3, loneliness:-1 } },
+          { label:"何か別のことに集中して、感じないようにする",         scores:{ nihilism:+2, stability:+2, loneliness:+1 } },
+        ]
+      },
+      {
+        id:"d3_2",
+        text:"「大丈夫？」と聞かれたとき、本当は大丈夫じゃない場合。あなたは？",
         options:[
-          { label:"軽くする。解放される感じがある",   scores:{ nihilism:+4, freedom:+3 } },
-          { label:"重くする。怖くなることがある",     scores:{ nihilism:+3, loneliness:+3 } },
-          { label:"どちらでもある、状況による",       scores:{ realism:+3, nihilism:+2 } },
-          { label:"あまりそういう感覚を持ったことがない", scores:{ stability:+4 } },
-        ] },
-      { id:"d3_3", text:"あなたにとって「死」は、日常的に意識するものですか？",
-        options:[
-          { label:"はい、よく考える",                scores:{ nihilism:+3, loneliness:+2, idealism:+1 } },
-          { label:"たまに意識する",                  scores:{ romanticism:+2, realism:+1 } },
-          { label:"なるべく考えないようにしている",   scores:{ stability:+3 } },
-          { label:"死を考えると、今が鮮明になる",    scores:{ freedom:+3, nihilism:+2, idealism:+2 } },
-        ] },
-    ] },
-  { stageId:"s4", theme:"自由と制約", themeEn:"FREEDOM AND CONSTRAINT",
-    intro:"あなたにとっての「自由」とは何か。",
+          { label:"「大丈夫」と答えて、それで終わらせる",              scores:{ loneliness:+3, nihilism:+2, community:-1 } },
+          { label:"「まあ、ちょっとね」と濁す",                        scores:{ loneliness:+2, sensitivity:+2, logic:+1 } },
+          { label:"冗談っぽく話して、本気じゃないフリをする",           scores:{ nihilism:+2, freedom:+2, sensitivity:+1 } },
+          { label:"正直に話す。言えるなら言いたい",                    scores:{ community:+3, emotion:+3, stability:+1 } },
+        ]
+      },
+    ]
+  },
+
+  // ── ステージ4: 矛盾の発見 ─────────────────────────────────
+  // 測定: 孤独依存 / 恐れ回避 / 理想と現実のギャップ
+  // 仕掛け: 前半の答えを揺さぶる矛盾質問
+  {
+    stageId:"s4", theme:"矛盾の発見", themeEn:"CONTRADICTION",
+    intro:"少し深いところへ。相反することが、両方本当であることがある。",
     questions:[
-      { id:"d4_1", text:"「自由でいたい」という欲望と、「所属したい」という欲望、どちらが強いですか？",
+      {
+        id:"d4_1",
+        text:"「一人でいる方が楽」と思いながら、「誰かに必要とされたい」と感じることが同時にある？",
         options:[
-          { label:"圧倒的に自由でいたい",            scores:{ freedom:+5, stability:-3, community:-2 } },
-          { label:"どちらかというと自由が好き",       scores:{ freedom:+3, stability:-1 } },
-          { label:"どちらかというと所属したい",       scores:{ community:+3, stability:+2 } },
-          { label:"その矛盾の中で生きている",         scores:{ idealism:+3, romanticism:+2, loneliness:+2 } },
-        ] },
-      { id:"d4_2", text:"「選択肢が多すぎること」は、あなたにとって苦しいですか？",
+          { label:"ある。その矛盾の中にいる",                          scores:{ loneliness:+3, nihilism:+2, romanticism:+2 } },
+          { label:"ある。でも「必要とされたい」の方を認めたくない",     scores:{ nihilism:+3, loneliness:+3, freedom:+1 } },
+          { label:"あまりない。どちらかがはっきりしている",            scores:{ stability:+2, logic:+2, realism:+1 } },
+          { label:"「必要とされたい」という感覚があまりない",           scores:{ nihilism:+3, freedom:+2, community:-2 } },
+        ]
+      },
+      {
+        id:"d4_2",
+        text:"「もう期待するのをやめた」と思ってから、また期待していたことに気づいたことは？",
         options:[
-          { label:"はい、選ぶことが怖くなることがある", scores:{ loneliness:+2, nihilism:+2, freedom:+1 } },
-          { label:"選択肢が多い方が安心する",         scores:{ freedom:+4, idealism:+2 } },
-          { label:"どちらでもない",                  scores:{ realism:+3 } },
-          { label:"選べないことの方が苦しい",         scores:{ freedom:+3, stability:-2 } },
-        ] },
-    ] },
-  { stageId:"s5", theme:"思想の輪郭", themeEn:"CONTOURS OF THOUGHT",
-    intro:"最後に。あなた自身の「思想の輪郭」に触れましょう。",
+          { label:"ある。気づいたら、またやっていた",                  scores:{ idealism:+3, loneliness:+2, nihilism:+1 } },
+          { label:"ある。その度に少しずつ諦め方を学んでいる",          scores:{ nihilism:+3, realism:+3, idealism:-1 } },
+          { label:"あまりない。一度やめたら戻らない",                  scores:{ nihilism:+2, stability:+2, freedom:+1 } },
+          { label:"そもそも期待することがほとんどない",                scores:{ nihilism:+4, loneliness:+2, idealism:-2 } },
+        ]
+      },
+    ]
+  },
+
+  // ── ステージ5: 夜の自己観測 ────────────────────────────────
+  // 測定: 深夜感受性 / 夜の孤独の質 / 自己認識の精度
+  {
+    stageId:"s5", theme:"夜の自己観測", themeEn:"NOCTURNAL SELF",
+    intro:"最後に。深夜にだけ現れる、あなたの内側の声を聞かせてください。",
     questions:[
-      { id:"d5_1", text:"「世界は変えられる」という信念を、今も持ち続けていますか？",
+      {
+        id:"d5_1",
+        text:"深夜に一人でいるとき、どんな自分がいる？",
         options:[
-          { label:"はい、強く信じている",            scores:{ idealism:+5, nihilism:-2 } },
-          { label:"信じたいが、揺れている",           scores:{ idealism:+3, nihilism:+2, romanticism:+1 } },
-          { label:"あまり信じていない",              scores:{ nihilism:+3, realism:+3 } },
-          { label:"世界より、自分を変えることを考える", scores:{ freedom:+3, realism:+2, idealism:+1 } },
-        ] },
-      { id:"d5_2", text:"「言葉にできない感情」は、存在すると思いますか？",
+          { label:"昼間とは違う、少し正直な自分",                      scores:{ loneliness:+2, freedom:+2, nihilism:+1, emotion:+2 } },
+          { label:"考えすぎて眠れない自分",                            scores:{ sensitivity:+3, loneliness:+2, stability:-2 } },
+          { label:"誰かのことをずっと考えている自分",                  scores:{ romanticism:+3, loneliness:+2, emotion:+3 } },
+          { label:"特に何もない。昼間と変わらない",                    scores:{ stability:+3, nihilism:+1, emotion:-1 } },
+        ]
+      },
+      {
+        id:"d5_2",
+        text:"「もう少し正直に生きたい」と思ったことがある？",
         options:[
-          { label:"存在する、そしてそれこそが本質だと思う", scores:{ romanticism:+4, emotion:+3 } },
-          { label:"存在するが、言葉にしたいと思う",   scores:{ idealism:+3, emotion:+2 } },
-          { label:"言葉にできないものに意味はない",   scores:{ logic:+5, nihilism:+1 } },
-          { label:"言葉にしないことで守られるものがある", scores:{ loneliness:+3, romanticism:+3 } },
-        ] },
-      { id:"d5_3", text:"この問いを終えて、あなたは自分についてどう感じていますか？",
+          { label:"ある。でもどうすれば正直になれるか分からない",        scores:{ idealism:+3, loneliness:+1, nihilism:+1 } },
+          { label:"ある。でも正直にいると、誰かが傷つく気がしてやめる", scores:{ sensitivity:+3, community:+1, freedom:-1 } },
+          { label:"あまりない。今でも十分正直でいる",                   scores:{ stability:+2, freedom:+2, realism:+2 } },
+          { label:"「正直に生きる」の意味がよく分からなくなっている",   scores:{ nihilism:+3, loneliness:+2, idealism:-1 } },
+        ]
+      },
+      {
+        id:"d5_3",
+        text:"この診断を終えて、最初にすることを想像したとき。",
         options:[
-          { label:"少し、自分が見えた気がする",       scores:{ idealism:+2, romanticism:+1 } },
-          { label:"変わらない。答えは出ない",         scores:{ nihilism:+3, realism:+2 } },
-          { label:"言語化することの限界を感じた",     scores:{ loneliness:+2, logic:+2 } },
-          { label:"考えること自体が、少し怖かった",   scores:{ loneliness:+3, nihilism:+2 } },
-        ] },
-    ] },
+          { label:"誰かに送る。この結果、見てほしい",                   scores:{ community:+3, emotion:+2 } },
+          { label:"スクショだけ保存する。誰かに送るかは分からない",     scores:{ loneliness:+2, sensitivity:+2 } },
+          { label:"もう一度読み直す。もっと正確に知りたい",            scores:{ logic:+2, idealism:+2, curiosity:+2 } },
+          { label:"閉じる。感情が落ち着くまで一人でいたい",           scores:{ loneliness:+3, nihilism:+1, freedom:+2 } },
+        ]
+      },
+    ]
+  },
 ];
 
 const DEEP_QUESTIONS_FLAT = DEEP_STAGES.flatMap(s => s.questions);
@@ -4203,14 +4369,14 @@ function DeepMode({ onComplete }) {
 
 // ── 思想解析ローディング画面
 function ThinkingScreen() {
-  // ── 解析ステップ（心理解析ログ演出）
+  // ── 解析ステップ（心理分析装置感）
   const STEPS = [
-    { id:"s0", label:"回避反応パターン検出中",    sub:"AVOIDANCE PATTERN SCAN",      pct: 11 },
-    { id:"s1", label:"愛着スタイル解析中",        sub:"ATTACHMENT STYLE ANALYSIS",   pct: 26 },
-    { id:"s2", label:"防衛機制マッピング中",      sub:"DEFENSE MECHANISM MAPPING",   pct: 44 },
-    { id:"s3", label:"感情抑圧傾向測定中",        sub:"EMOTION SUPPRESSION METERING",pct: 61 },
-    { id:"s4", label:"認知の癖を言語化中",        sub:"COGNITIVE PATTERN LABELING",  pct: 79 },
-    { id:"s5", label:"内面構造モデリング完了",    sub:"INNER STRUCTURE MODELING",    pct: 96 },
+    { id:"s0", label:"防衛機制スキャン中",    sub:"DEFENSE MECHANISM SCAN",     pct: 12 },
+    { id:"s1", label:"愛着パターン解析中",    sub:"ATTACHMENT STYLE ANALYSIS",  pct: 28 },
+    { id:"s2", label:"認知傾向マッピング中",  sub:"COGNITIVE PATTERN MAPPING",  pct: 47 },
+    { id:"s3", label:"内的矛盾抽出中",        sub:"INNER CONFLICT EXTRACTION",  pct: 66 },
+    { id:"s4", label:"自己防衛構造測定中",    sub:"SELF-PROTECTION MEASURING",  pct: 82 },
+    { id:"s5", label:"取扱説明書生成中",      sub:"MANUAL GENERATION",          pct: 96 },
   ];
 
   const [stepIdx,   setStepIdx]   = useState(0);
@@ -4456,49 +4622,32 @@ function ThinkingScreen() {
           </div>
         </div>
 
-        {/* ── 心理解析ログ（リアルタイム演出） ── */}
+        {/* ── ログ行（スクロールするステータス） ── */}
         <div style={{ padding:"10px 14px",
           background:"rgba(0,0,0,0.3)", border:"1px solid rgba(80,120,160,0.12)",
           borderRadius:8, textAlign:"left" }}>
           {STEPS.map((s, i) => {
             const done    = i < stepIdx;
             const current = i === stepIdx;
-
-            // 各ステップの解析結果メッセージ
-            const resultMsg = [
-              "回避傾向: 検出完了",
-              "FEARFUL / AVOID → 解析中",
-              "感情抑圧: やや高め",
-              "抑制スコア: 計算完了",
-              "先回り不安: 有意",
-              "レポート生成中...",
-            ][i] ?? "";
-
             return (
               <div key={s.id} style={{
                 display:"flex", alignItems:"center", gap:8,
-                marginBottom: i < STEPS.length-1 ? 6 : 0,
-                opacity: done ? 0.38 : current ? 1 : 0.2,
+                marginBottom: i < STEPS.length-1 ? 5 : 0,
+                opacity: done ? 0.35 : current ? 1 : 0.2,
                 transition:"opacity 0.4s ease",
               }}>
                 <span style={{ fontSize:8, width:10, textAlign:"center",
                   color: done ? "rgba(80,200,120,0.8)" : current ? "rgba(80,170,230,0.9)" : "rgba(100,120,160,0.4)" }}>
                   {done ? "✓" : current ? "▶" : "·"}
                 </span>
-                <span style={{ fontSize:8, letterSpacing:"0.12em", flex:1,
+                <span style={{ fontSize:8, letterSpacing:"0.12em",
                   color: done ? "rgba(80,200,120,0.65)" : current ? "rgba(140,180,230,0.85)" : "rgba(80,100,140,0.4)" }}>
                   {s.sub}
                 </span>
-                {done && (
-                  <span style={{ fontSize:7, color:"rgba(80,200,120,0.5)", letterSpacing:"0.1em" }}>
-                    {resultMsg}
-                  </span>
-                )}
                 {current && (
-                  <span style={{ fontSize:7,
-                    color:"rgba(80,160,220,0.6)", animation:"numFlicker 0.7s ease-in-out infinite",
-                    letterSpacing:"0.1em" }}>
-                    ANALYZING
+                  <span style={{ marginLeft:"auto", fontSize:8,
+                    color:"rgba(80,160,220,0.6)", animation:"numFlicker 0.7s ease-in-out infinite" }}>
+                    RUNNING
                   </span>
                 )}
               </div>
