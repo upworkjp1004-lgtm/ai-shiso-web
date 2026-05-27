@@ -976,7 +976,6 @@ body{background:#111109;color:#ddd0b0;font-family:'Noto Serif JP',serif;min-heig
   .q-text{font-size:18px !important;}
   .opt{font-size:13px;}
 }
-`
 `;
 
 // ───────────────────────────────────────────────────────────────
