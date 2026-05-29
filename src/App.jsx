@@ -1370,6 +1370,13 @@ function ResultScreen({ answers, onRestart }) {
     else if (navigator.clipboard) { navigator.clipboard.writeText(shareText).then(()=>alert("コピーしました")).catch(()=>{}); }
   }, [shareText]);
 
+  const handleXShare = useCallback(() => {
+    if (!type) return;
+    const text = `私は「${type.name}」でした。\n${type.axis}な思想を持つタイプ。\nhttps://example.com\n#診断 #哲学診断`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, [type]);
+
   if (!type) return null;
 
   return (
@@ -1471,6 +1478,7 @@ function ResultScreen({ answers, onRestart }) {
         </div>
         <div style={{ display:"flex", gap:10, marginTop:12 }}>
           <button className="btn btn-primary" onClick={handleShare}>SHARE</button>
+          <button className="btn btn-ghost" onClick={handleXShare}>Xで共有</button>
           <button className="btn btn-ghost" onClick={onRestart}>RESTART</button>
         </div>
       </div>
