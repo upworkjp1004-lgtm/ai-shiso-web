@@ -401,6 +401,84 @@ function resolveType(s) {
     quote:"問い続けることが、哲学の本質だ。" };
 }
 
+// ───────────────────────────────────────────────────────────────
+//  DATA ▸ 推薦書籍（思想タイプ別）
+// ───────────────────────────────────────────────────────────────
+const RECOMMENDED_BOOKS = {
+  "ニヒリズム": {
+    title: "生誕の災厄",
+    author: "エミール・シオラン",
+    description: "存在することの理不尽さを極限まで突き詰めた断章集。虚無と悲観を直視しながらも、その深淵から言葉を生み出し続けた思想家の代表作。",
+    amazonUrl: "#",
+    nextPhilosophers: ["シオラン", "ショーペンハウアー", "ニーチェ"],
+    lineage: ["ショーペンハウアー", "ニーチェ", "シオラン"],
+  },
+  "不条理主義": {
+    title: "異邦人",
+    author: "アルベール・カミュ",
+    description: "不条理な世界の中で生きる人間を描いた代表作。意味を求めながらも意味を拒絶される人間の姿を通じ、この思想タイプの核心に触れられる最初の一冊。",
+    amazonUrl: "#",
+    nextPhilosophers: ["カミュ", "サルトル", "キェルケゴール"],
+    lineage: ["キェルケゴール", "ニーチェ", "カミュ"],
+  },
+  "実存主義": {
+    title: "実存主義とは何か",
+    author: "ジャン＝ポール・サルトル",
+    description: "「実存は本質に先立つ」という命題を平易に解説した入門講演録。自由と責任の哲学の出発点として、実存主義タイプに最も相応しい一冊。",
+    amazonUrl: "#",
+    nextPhilosophers: ["サルトル", "ハイデガー", "キェルケゴール"],
+    lineage: ["キェルケゴール", "ハイデガー", "サルトル"],
+  },
+  "観念論的合理主義": {
+    title: "永遠平和のために",
+    author: "イマヌエル・カント",
+    description: "理性による道徳と政治秩序の可能性を論じた小著。カントの思想の核心を比較的平易に掴める入門的作品であり、合理主義タイプへの最初の問いかけ。",
+    amazonUrl: "#",
+    nextPhilosophers: ["カント", "ヘーゲル", "スピノザ"],
+    lineage: ["スピノザ", "カント", "ヘーゲル"],
+  },
+  "懐疑的経験論": {
+    title: "言語ゲームという哲学",
+    author: "ルートヴィヒ・ウィトゲンシュタイン",
+    description: "言語と思考の限界を問い直すウィトゲンシュタインの後期思想への入門。「語りえないことには沈黙する」——懐疑と言語の問いを体感できる一冊。",
+    amazonUrl: "#",
+    nextPhilosophers: ["ウィトゲンシュタイン", "フーコー", "ハイデガー"],
+    lineage: ["フレーゲ", "ウィトゲンシュタイン", "フーコー"],
+  },
+  "超越的観念論": {
+    title: "エチカ",
+    author: "バールーフ・スピノザ",
+    description: "「神すなわち自然」を幾何学的論証で展開した哲学の頂点。超越と理性が交差するこの思想タイプに、スピノザの静謐な宇宙観は深く響く。",
+    amazonUrl: "#",
+    nextPhilosophers: ["スピノザ", "カント", "キェルケゴール"],
+    lineage: ["デカルト", "スピノザ", "カント"],
+  },
+  "悲観的観念論": {
+    title: "意志と表象としての世界",
+    author: "アルトゥル・ショーペンハウアー",
+    description: "盲目の意志が世界を動かすという悲観的宇宙論の大著。苦悩の根拠を哲学的に辿るこのタイプに、ショーペンハウアーの洞察は正面から刺さる。",
+    amazonUrl: "#",
+    nextPhilosophers: ["ショーペンハウアー", "ニーチェ", "シオラン"],
+    lineage: ["カント", "ショーペンハウアー", "ニーチェ"],
+  },
+  "社会的合理主義": {
+    title: "精神現象学（入門）",
+    author: "G.W.F. ヘーゲル",
+    description: "弁証法による歴史と意識の発展を論じたヘーゲルの主著への入門。社会と理性が調和するこのタイプに、歴史哲学の視座を与える必読の一冊。",
+    amazonUrl: "#",
+    nextPhilosophers: ["ヘーゲル", "カント", "マルクス"],
+    lineage: ["カント", "ヘーゲル", "マルクス"],
+  },
+  "折衷的懐疑主義": {
+    title: "ツァラトゥストラはこう語った",
+    author: "フリードリヒ・ニーチェ",
+    description: "既存の価値を解体し、自ら意味を創造することを説いたニーチェの代表作。複数の流れが交差するこのタイプに、問い続ける姿勢の原点を示す。",
+    amazonUrl: "#",
+    nextPhilosophers: ["ニーチェ", "ハイデガー", "カミュ"],
+    lineage: ["ショーペンハウアー", "ニーチェ", "ハイデガー"],
+  },
+};
+
 const RADAR_KEYS = ["existence","rationalism","nihilism","individual","skepticism","transcend"];
 const RADAR_JP   = { existence:"実存", rationalism:"理性", nihilism:"虚無", individual:"個人", skepticism:"懐疑", transcend:"超越" };
 function toRadar(s) {
@@ -956,6 +1034,95 @@ body{background:#111109;color:#ddd0b0;font-family:'Noto Serif JP',serif;min-heig
   color:rgba(221,208,176,.32);line-height:1.85;letter-spacing:.03em;
 }
 
+/* ── 推薦書籍セクション ── */
+.rec-book-card{
+  background:rgba(184,156,64,.025);
+  border:1px solid rgba(184,156,64,.22);
+  padding:28px 26px 22px;
+  position:relative;
+  animation:fadeUp .5s ease both;
+}
+.rec-book-card::before{
+  content:'BOOK';position:absolute;top:12px;right:16px;
+  font-family:var(--mono);font-size:6px;
+  letter-spacing:.38em;color:rgba(184,156,64,.18);
+}
+.rec-book-title{
+  font-family:var(--serif);font-style:italic;
+  font-size:clamp(20px,4vw,26px);
+  color:var(--gold);font-weight:400;
+  margin-bottom:6px;line-height:1.3;
+}
+.rec-book-author{
+  font-family:var(--mono);font-size:9px;
+  color:var(--dim);letter-spacing:.22em;
+  margin-bottom:16px;
+}
+.rec-book-desc{
+  font-family:var(--jp);font-size:14px;font-weight:200;
+  color:var(--muted);line-height:2.2;
+  letter-spacing:.04em;margin-bottom:20px;
+}
+.rec-book-btn{
+  display:inline-block;
+  font-family:var(--mono);font-size:9px;
+  letter-spacing:.28em;color:var(--gold);
+  border:1px solid rgba(184,156,64,.5);
+  padding:13px 28px;cursor:pointer;
+  background:transparent;
+  transition:all .22s ease;
+  text-decoration:none;
+}
+.rec-book-btn:hover{
+  background:rgba(184,156,64,.08);
+  border-color:var(--gold);
+}
+
+/* ── 次に読むべき哲学者リスト ── */
+.next-phil-list{
+  padding:8px 0 0;
+  counter-reset:phil-counter;
+}
+.next-phil-item{
+  display:flex;align-items:baseline;gap:16px;
+  padding:12px 0;
+  border-bottom:1px solid var(--border3);
+  animation:fadeUp .45s ease both;
+}
+.next-phil-item:last-child{border-bottom:none;}
+.next-phil-num{
+  font-family:var(--mono);font-size:10px;
+  color:rgba(184,156,64,.45);letter-spacing:.1em;
+  flex-shrink:0;min-width:24px;
+}
+.next-phil-name{
+  font-family:var(--serif);font-style:italic;
+  font-size:17px;color:var(--muted);font-weight:400;
+}
+
+/* ── 思想系譜テキスト ── */
+.lineage-text-wrap{
+  padding:8px 0;
+  animation:fadeUp .5s ease both;
+}
+.lineage-text-node{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 0;
+}
+.lineage-text-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:rgba(184,156,64,.35);flex-shrink:0;
+}
+.lineage-text-name{
+  font-family:var(--serif);font-style:italic;
+  font-size:16px;color:var(--muted);font-weight:400;
+  letter-spacing:.02em;
+}
+.lineage-text-arrow{
+  font-family:var(--mono);font-size:11px;
+  color:rgba(184,156,64,.28);padding:2px 0 2px 20px;
+}
+
 /* ── responsive ── */
 @media(max-width:600px){
   .content,.site-header{padding:0 20px;}
@@ -1352,6 +1519,90 @@ function LineageTimeline({ topPhil }) {
   );
 }
 
+// ── 収益導線①: あなた向け入門書 ──
+function RecommendedBookSection({ type }) {
+  if (!type) return null;
+  const book = RECOMMENDED_BOOKS[type.name] || RECOMMENDED_BOOKS["折衷的懐疑主義"];
+  if (!book) return null;
+  return (
+    <div style={{ marginBottom:48 }}>
+      <p className="sec">RECOMMENDED BOOK</p>
+      <p style={{ fontFamily:"var(--jp)", fontSize:13, color:"var(--dim)", marginBottom:20, fontWeight:200, lineHeight:1.9, letterSpacing:".04em" }}>
+        あなたの思想タイプ「{type.name}」に最適な入門書を選びました。
+      </p>
+      <div className="rec-book-card">
+        <p className="rec-book-title">{book.title}</p>
+        <p className="rec-book-author">{book.author}</p>
+        <p className="rec-book-desc">{book.description}</p>
+        <a
+          className="rec-book-btn"
+          href={book.amazonUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          この本を見る
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ── 収益導線②: 次に読むべき哲学者リスト ──
+function NextPhilosophersSection({ type }) {
+  if (!type) return null;
+  const book = RECOMMENDED_BOOKS[type.name] || RECOMMENDED_BOOKS["折衷的懐疑主義"];
+  const philosophers = book ? book.nextPhilosophers : [];
+  if (!philosophers.length) return null;
+  return (
+    <div style={{ marginBottom:48 }}>
+      <p className="sec">NEXT PHILOSOPHERS</p>
+      <p style={{ fontFamily:"var(--jp)", fontSize:13, color:"var(--dim)", marginBottom:20, fontWeight:200, lineHeight:1.9, letterSpacing:".04em" }}>
+        このタイプから思想を深めるために読むべき哲学者です。
+      </p>
+      <div className="next-phil-list">
+        {philosophers.map((name, i) => (
+          <div key={name} className="next-phil-item" style={{ animationDelay: (i * 0.08) + "s" }}>
+            <span className="next-phil-num">0{i + 1}</span>
+            <span className="next-phil-name">{name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── 収益導線③: 思想系譜を辿る ──
+function LineageTextSection({ type }) {
+  if (!type) return null;
+  const book = RECOMMENDED_BOOKS[type.name] || RECOMMENDED_BOOKS["折衷的懐疑主義"];
+  const lineage = book ? book.lineage : [];
+  if (!lineage.length) return null;
+  return (
+    <div style={{ marginBottom:48 }}>
+      <p className="sec">THOUGHT LINEAGE</p>
+      <p style={{ fontFamily:"var(--jp)", fontSize:13, color:"var(--dim)", marginBottom:20, fontWeight:200, lineHeight:1.9, letterSpacing:".04em" }}>
+        この思想タイプが生まれた哲学的系譜を辿ります。
+      </p>
+      <div className="lineage-text-wrap">
+        {lineage.map((name, i) => (
+          <div key={name + "_" + i}>
+            <div className="lineage-text-node">
+              <div className="lineage-text-dot" style={{ background: i === lineage.length - 1 ? "var(--gold)" : "rgba(184,156,64,.35)" }} />
+              <span className="lineage-text-name" style={{ color: i === lineage.length - 1 ? "var(--gold)" : "var(--muted)" }}>
+                {name}
+              </span>
+            </div>
+            {i < lineage.length - 1 && (
+              <div className="lineage-text-arrow">↓</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
 function ResultScreen({ answers, onRestart }) {
   const scores  = useMemo(() => calcScores(answers), [answers]);
   const type    = useMemo(() => resolveType(scores), [scores]);
@@ -1448,6 +1699,21 @@ function ResultScreen({ answers, onRestart }) {
 
       {/* 思想系譜タイムライン（新機能④）*/}
       {topPhil && <LineageTimeline topPhil={topPhil} />}
+
+      <div className="divider" />
+
+      {/* ① あなた向け入門書 */}
+      <RecommendedBookSection type={type} />
+
+      <div className="divider" />
+
+      {/* ② 次に読むべき哲学者リスト */}
+      <NextPhilosophersSection type={type} />
+
+      <div className="divider" />
+
+      {/* ③ 思想系譜を辿る */}
+      <LineageTextSection type={type} />
 
       <div className="divider" />
 
